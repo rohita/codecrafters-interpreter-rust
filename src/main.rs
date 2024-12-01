@@ -1,6 +1,10 @@
+mod scanner;
+mod token;
+
 use std::env;
 use std::fs;
 use std::io::{self, Write};
+use crate::scanner::Scanner;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -22,15 +26,19 @@ fn main() {
                 String::new()
             });
 
-            if !file_contents.is_empty() {
-                panic!("Scanner not implemented");
-            } else {
-                println!("EOF  null"); // Placeholder, remove this line when implementing the scanner
-            }
+            run(file_contents);
         }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
             return;
         }
+    }
+}
+
+fn run(file_contents: String) {
+    let mut scanner = Scanner::new(file_contents);
+    let tokens = scanner.scan_tokens();
+    for token in tokens {
+        println!("{}", token);
     }
 }
