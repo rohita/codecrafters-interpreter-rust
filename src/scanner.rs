@@ -36,6 +36,12 @@ impl Scanner {
             ')' => self.add_token(RIGHT_PAREN),
             '{' => self.add_token(LEFT_BRACE),
             '}' => self.add_token(RIGHT_BRACE),
+            ',' => self.add_token(COMMA),
+            '.' => self.add_token(DOT),
+            '-' => self.add_token(MINUS),
+            '+' => self.add_token(PLUS),
+            ';' => self.add_token(SEMICOLON),
+            '*' => self.add_token(STAR),
             _ => panic!("{}", format!("invalid token: {c} ({})", *c as u32)),
         }
     }
