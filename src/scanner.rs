@@ -23,7 +23,7 @@ impl Scanner {
     }
 
     pub fn scan_tokens(&mut self) -> Vec<Token> {
-        while self.current < self.source.len() {
+        while !self.is_at_end() {
             self.start = self.current;
             self.scan_token()
         }
@@ -31,8 +31,12 @@ impl Scanner {
         self.tokens.clone()
     }
 
+    fn is_at_end(&self) -> bool {
+        return self.current >= self.source.len();
+    }
+
     fn scan_token(&mut self) {
-        let ln = self.line; 
+        let ln = self.line;
         let c = self.advance().unwrap();
         match c {
             '(' => self.add_token(LEFT_PAREN),
@@ -45,6 +49,22 @@ impl Scanner {
             '+' => self.add_token(PLUS),
             ';' => self.add_token(SEMICOLON),
             '*' => self.add_token(STAR),
+            '!' => match self.match_next('=') {
+                true => self.add_token(BANG_EQUAL),
+                false => self.add_token(BANG),
+            },
+            '=' => match self.match_next('=') {
+                true => self.add_token(EQUAL_EQUAL),   
+                false => self.add_token(EQUAL),
+            },
+            '<' => match self.match_next('=') {
+                true => self.add_token(LESS_EQUAL),
+                false => self.add_token(LESS),
+            },
+            '>' => match self.match_next('=') {
+                true => self.add_token(GREATER_EQUAL), 
+                false => self.add_token(GREATER),
+            }
             _ => {
                 eprintln!("[line {}] Error: Unexpected character: {}", ln, c);
                 self.had_error = true;
@@ -61,5 +81,20 @@ impl Scanner {
     fn add_token(&mut self, token_type: TokenType) {
         let text = self.source[self.start..self.current].iter().collect();
         self.tokens.push(Token::new(token_type, text, None, self.line));
+    }
+
+    fn match_next(&mut self, expected: char) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+
+        let res = self.source.get(self.current).unwrap();
+
+        if *res != expected {
+            return false;
+        }
+
+        self.current += 1;
+        return true;
     }
 }
