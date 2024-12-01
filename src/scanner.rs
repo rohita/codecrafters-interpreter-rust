@@ -7,6 +7,7 @@ pub struct Scanner {
     start: usize,
     current: usize,
     line: usize,
+    pub had_error: bool,
 }
 
 impl Scanner {
@@ -17,6 +18,7 @@ impl Scanner {
             current: 0,
             start: 0,
             line: 1,
+            had_error: false,
         }
     }
 
@@ -30,6 +32,7 @@ impl Scanner {
     }
 
     fn scan_token(&mut self) {
+        let ln = self.line; 
         let c = self.advance().unwrap();
         match c {
             '(' => self.add_token(LEFT_PAREN),
@@ -42,7 +45,10 @@ impl Scanner {
             '+' => self.add_token(PLUS),
             ';' => self.add_token(SEMICOLON),
             '*' => self.add_token(STAR),
-            _ => panic!("{}", format!("invalid token: {c} ({})", *c as u32)),
+            _ => {
+                eprintln!("[line {}] Error: Unexpected character: {}", ln, c);
+                self.had_error = true;
+            }
         }
     }
 

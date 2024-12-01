@@ -4,6 +4,7 @@ mod token;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
+use std::process::exit;
 use crate::scanner::Scanner;
 
 fn main() {
@@ -40,5 +41,9 @@ fn run(file_contents: String) {
     let tokens = scanner.scan_tokens();
     for token in tokens {
         println!("{}", token);
+    }
+    
+    if scanner.had_error {
+        exit(65);
     }
 }
