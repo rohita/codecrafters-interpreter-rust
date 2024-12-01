@@ -34,6 +34,8 @@ impl Scanner {
         match c {
             '(' => self.add_token(LEFT_PAREN),
             ')' => self.add_token(RIGHT_PAREN),
+            '{' => self.add_token(LEFT_BRACE),
+            '}' => self.add_token(RIGHT_BRACE),
             _ => panic!("{}", format!("invalid token: {c} ({})", *c as u32)),
         }
     }
