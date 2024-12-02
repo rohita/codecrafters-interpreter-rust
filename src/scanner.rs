@@ -72,6 +72,8 @@ impl Scanner {
             } else { 
                 self.add_token(SLASH) 
             },
+            '\n' => self.line += 1,
+            ' ' | '\r' | '\t' => {}
             _ => {
                 eprintln!("[line {}] Error: Unexpected character: {}", ln, c);
                 self.had_error = true;
