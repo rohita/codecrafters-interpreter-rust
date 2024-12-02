@@ -64,7 +64,14 @@ impl Scanner {
             '>' => match self.match_next('=') {
                 true => self.add_token(GREATER_EQUAL), 
                 false => self.add_token(GREATER),
-            }
+            },
+            '/' => if self.match_next('/') {
+                while self.peek() != '\n' && !self.is_at_end() {
+                    self.advance();
+                }
+            } else { 
+                self.add_token(SLASH) 
+            },
             _ => {
                 eprintln!("[line {}] Error: Unexpected character: {}", ln, c);
                 self.had_error = true;
@@ -96,5 +103,12 @@ impl Scanner {
 
         self.current += 1;
         return true;
+    }
+    
+    fn peek(&self) -> char {
+        if self.is_at_end() {
+            return '\0';
+        }
+        self.source[self.current]
     }
 }
