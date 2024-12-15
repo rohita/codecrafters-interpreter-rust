@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::token::{Token, TokenType};
 use crate::token::TokenType::*;
 
@@ -75,33 +76,35 @@ impl Scanner {
             '\n' => self.line += 1,
             ' ' | '\r' | '\t' => {}
             '"' => self.string(),
-            d if Self::is_digit(*d) => self.number(),
-            a if Self::is_alpha(*a) => self.identifier(),
+            d if is_digit(*d) => self.number(),
+            a if is_alpha(*a) => self.identifier(),
             _ => {
-                Self::report(ln, "".to_string(), format!("Unexpected character: {}", c));
+                report(ln, "".to_string(), format!("Unexpected character: {}", c));
                 self.had_error = true;
             }
         }
     }
     
     fn identifier(&mut self) {
-        while Self::is_alpha_numeric(self.peek()) {
+        while is_alpha_numeric(self.peek()) {
             self.advance();
         }
-        
-        self.add_token(IDENTIFIER);
+
+        let text: String = self.source[self.start..self.current].iter().collect();
+        let token_type: TokenType = keywoards().get(&*text).unwrap_or(&IDENTIFIER).clone();
+        self.add_token(token_type);
     }
 
     fn number(&mut self) {
-        while Self::is_digit(self.peek()) {
+        while is_digit(self.peek()) {
             self.advance();
         }
 
         // Look for a fractional part
-        if self.peek() == '.' && Self::is_digit(self.peek_next()) {
+        if self.peek() == '.' && is_digit(self.peek_next()) {
             self.advance();
 
-            while Self::is_digit(self.peek()) {
+            while is_digit(self.peek()) {
                 self.advance();
             }
         }
@@ -121,7 +124,7 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            Self::report(self.line, "".to_string(), "Unterminated string.".to_string());
+            report(self.line, "".to_string(), "Unterminated string.".to_string());
             self.had_error = true;
             return;
         }
@@ -177,22 +180,43 @@ impl Scanner {
         }
         self.source[self.current + 1]
     }
+}
 
-    fn is_alpha(c: char) -> bool {
-        (c >= 'a' && c <= 'z') ||
+fn is_alpha(c: char) -> bool {
+    (c >= 'a' && c <= 'z') ||
         (c >= 'A' && c <= 'Z') ||
         c == '_'
-    }
+}
 
-    fn is_alpha_numeric(c: char) -> bool {
-        Self::is_alpha(c) || Self::is_digit(c)
-    }
-    
-    fn is_digit(c: char) -> bool {
-        c >= '0' && c <= '9'
-    }
+fn is_alpha_numeric(c: char) -> bool {
+    is_alpha(c) || is_digit(c)
+}
 
-    fn report(line: usize, wh: String, message: String) {
-        eprintln!("[line {}] Error{}: {}", line, wh, message);
-    }
+fn is_digit(c: char) -> bool {
+    c >= '0' && c <= '9'
+}
+
+fn report(line: usize, wh: String, message: String) {
+    eprintln!("[line {}] Error{}: {}", line, wh, message);
+}
+
+fn keywoards() -> HashMap<&'static str, TokenType> {
+    HashMap::from([
+        ("and",    AND),
+        ("class",  CLASS),
+        ("else",   ELSE),
+        ("false",  FALSE),
+        ("for",    FOR),
+        ("fun",    FUN),
+        ("if",     IF),
+        ("nil",    NIL),
+        ("or",     OR),
+        ("print",  PRINT),
+        ("return", RETURN),
+        ("super",  SUPER),
+        ("this",   THIS),
+        ("true",   TRUE),
+        ("var",    VAR),
+        ("while",  WHILE),
+    ])
 }
