@@ -75,26 +75,33 @@ impl Scanner {
             '\n' => self.line += 1,
             ' ' | '\r' | '\t' => {}
             '"' => self.string(),
-            d if Scanner::is_digit(*d) => {
-                self.number();
-            },
+            d if Self::is_digit(*d) => self.number(),
+            a if Self::is_alpha(*a) => self.identifier(),
             _ => {
-                Scanner::report(ln, "".to_string(), format!("Unexpected character: {}", c));
+                Self::report(ln, "".to_string(), format!("Unexpected character: {}", c));
                 self.had_error = true;
             }
         }
     }
+    
+    fn identifier(&mut self) {
+        while Self::is_alpha_numeric(self.peek()) {
+            self.advance();
+        }
+        
+        self.add_token(IDENTIFIER);
+    }
 
     fn number(&mut self) {
-        while Scanner::is_digit(self.peek()) {
+        while Self::is_digit(self.peek()) {
             self.advance();
         }
 
         // Look for a fractional part
-        if self.peek() == '.' && Scanner::is_digit(self.peek_next()) {
+        if self.peek() == '.' && Self::is_digit(self.peek_next()) {
             self.advance();
 
-            while Scanner::is_digit(self.peek()) {
+            while Self::is_digit(self.peek()) {
                 self.advance();
             }
         }
@@ -114,7 +121,7 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            Scanner::report(self.line, "".to_string(), "Unterminated string.".to_string());
+            Self::report(self.line, "".to_string(), "Unterminated string.".to_string());
             self.had_error = true;
             return;
         }
@@ -171,6 +178,16 @@ impl Scanner {
         self.source[self.current + 1]
     }
 
+    fn is_alpha(c: char) -> bool {
+        (c >= 'a' && c <= 'z') ||
+        (c >= 'A' && c <= 'Z') ||
+        c == '_'
+    }
+
+    fn is_alpha_numeric(c: char) -> bool {
+        Self::is_alpha(c) || Self::is_digit(c)
+    }
+    
     fn is_digit(c: char) -> bool {
         c >= '0' && c <= '9'
     }
