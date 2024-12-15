@@ -74,11 +74,34 @@ impl Scanner {
             },
             '\n' => self.line += 1,
             ' ' | '\r' | '\t' => {}
+            '"' => self.string(),
             _ => {
-                eprintln!("[line {}] Error: Unexpected character: {}", ln, c);
+                Scanner::report(ln, "".to_string(), format!("Unexpected character: {}", c));
                 self.had_error = true;
             }
         }
+    }
+    
+    fn string(&mut self) {
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.line += 1;
+            }
+            self.advance();
+        }
+        
+        if self.is_at_end() {
+            Scanner::report(self.line, "".to_string(), "Unterminated string.".to_string());
+            self.had_error = true;
+            return;
+        }
+
+        // The closing ".
+        self.advance();
+
+        // Trim the surrounding quotes.
+        let value: String = self.source[self.start+1..self.current-1].iter().collect();
+        self.add_token_with_literal(STRING, Option::from(value)); 
     }
 
     fn advance(&mut self) -> Option<&char> {
@@ -88,8 +111,12 @@ impl Scanner {
     }
 
     fn add_token(&mut self, token_type: TokenType) {
+        self.add_token_with_literal(token_type, None);
+    }
+    
+    fn add_token_with_literal(&mut self, token_type: TokenType, literal: Option<String>) {
         let text = self.source[self.start..self.current].iter().collect();
-        self.tokens.push(Token::new(token_type, text, None, self.line));
+        self.tokens.push(Token::new(token_type, text, literal, self.line));
     }
 
     fn match_next(&mut self, expected: char) -> bool {
@@ -112,5 +139,9 @@ impl Scanner {
             return '\0';
         }
         self.source[self.current]
+    }
+    
+    fn report(line: usize, wh: String, message: String) {
+        eprintln!("[line {}] Error{}: {}", line, wh, message);
     }
 }

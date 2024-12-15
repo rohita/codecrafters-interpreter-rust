@@ -14,6 +14,10 @@ pub enum TokenType {
     GREATER, GREATER_EQUAL,
     LESS, LESS_EQUAL,
 
+    // Literals.
+    IDENTIFIER, STRING, NUMBER,
+
+
     EOF,
 }
 
