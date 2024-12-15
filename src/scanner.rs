@@ -25,14 +25,14 @@ impl Scanner {
     pub fn scan_tokens(&mut self) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
-            self.scan_token()
+            self.scan_token(); 
         }
         self.tokens.push(Token::new(EOF, String::new(), None, self.line));
         self.tokens.clone()
     }
 
     fn is_at_end(&self) -> bool {
-        return self.current >= self.source.len();
+        self.current >= self.source.len()
     }
 
     fn scan_token(&mut self) {
@@ -54,7 +54,7 @@ impl Scanner {
                 false => self.add_token(BANG),
             },
             '=' => match self.match_next('=') {
-                true => self.add_token(EQUAL_EQUAL),   
+                true => self.add_token(EQUAL_EQUAL),
                 false => self.add_token(EQUAL),
             },
             '<' => match self.match_next('=') {
@@ -62,26 +62,49 @@ impl Scanner {
                 false => self.add_token(LESS),
             },
             '>' => match self.match_next('=') {
-                true => self.add_token(GREATER_EQUAL), 
+                true => self.add_token(GREATER_EQUAL),
                 false => self.add_token(GREATER),
             },
             '/' => if self.match_next('/') {
                 while self.peek() != '\n' && !self.is_at_end() {
                     self.advance();
                 }
-            } else { 
-                self.add_token(SLASH) 
+            } else {
+                self.add_token(SLASH)
             },
             '\n' => self.line += 1,
             ' ' | '\r' | '\t' => {}
             '"' => self.string(),
+            d if Scanner::is_digit(*d) => {
+                self.number();
+            },
             _ => {
                 Scanner::report(ln, "".to_string(), format!("Unexpected character: {}", c));
                 self.had_error = true;
             }
         }
     }
-    
+
+    fn number(&mut self) {
+        while Scanner::is_digit(self.peek()) {
+            self.advance();
+        }
+
+        // Look for a fractional part
+        if self.peek() == '.' && Scanner::is_digit(self.peek_next()) {
+            self.advance();
+
+            while Scanner::is_digit(self.peek()) {
+                self.advance();
+            }
+        }
+
+        let mut value: String = self.source[self.start..self.current].iter().collect();
+        let my_int: f64 = value.parse().unwrap();
+        value = format!("{:?}", my_int);
+        self.add_token_with_literal(NUMBER, Option::from(value));
+    }
+
     fn string(&mut self) {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
@@ -89,7 +112,7 @@ impl Scanner {
             }
             self.advance();
         }
-        
+
         if self.is_at_end() {
             Scanner::report(self.line, "".to_string(), "Unterminated string.".to_string());
             self.had_error = true;
@@ -101,7 +124,7 @@ impl Scanner {
 
         // Trim the surrounding quotes.
         let value: String = self.source[self.start+1..self.current-1].iter().collect();
-        self.add_token_with_literal(STRING, Option::from(value)); 
+        self.add_token_with_literal(STRING, Option::from(value));
     }
 
     fn advance(&mut self) -> Option<&char> {
@@ -113,7 +136,7 @@ impl Scanner {
     fn add_token(&mut self, token_type: TokenType) {
         self.add_token_with_literal(token_type, None);
     }
-    
+
     fn add_token_with_literal(&mut self, token_type: TokenType, literal: Option<String>) {
         let text = self.source[self.start..self.current].iter().collect();
         self.tokens.push(Token::new(token_type, text, literal, self.line));
@@ -133,14 +156,25 @@ impl Scanner {
         self.current += 1;
         return true;
     }
-    
+
     fn peek(&self) -> char {
         if self.is_at_end() {
             return '\0';
         }
         self.source[self.current]
     }
-    
+
+    fn peek_next(&self) -> char {
+        if self.current + 1 >= self.source.len() {
+            return '\0';
+        }
+        self.source[self.current + 1]
+    }
+
+    fn is_digit(c: char) -> bool {
+        c >= '0' && c <= '9'
+    }
+
     fn report(line: usize, wh: String, message: String) {
         eprintln!("[line {}] Error{}: {}", line, wh, message);
     }
