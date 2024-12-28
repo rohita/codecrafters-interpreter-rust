@@ -24,7 +24,7 @@ impl Display for Expr {
             Expr::Bool(b) => f.write_fmt(format_args!("{b}")),
             Expr::Nil => f.write_str("nil"),
             Expr::Number(n) => f.write_fmt(format_args!("{n:?}")),
-            Expr::String(s) => f.write_fmt(format_args!("{s:?}")),
+            Expr::String(s) => f.write_fmt(format_args!("{s}")),
             Expr::Unary { operator, right } => {
                 f.write_fmt(format_args!("{} {right}", operator.lexeme))
             }

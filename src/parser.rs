@@ -1,3 +1,4 @@
+use std::io;
 use crate::expr::Expr;
 use crate::token::{Token, TokenType};
 
@@ -17,11 +18,13 @@ impl Parser {
         let mut exprs = Vec::new();
         let tokens = self.tokens.iter().peekable();
         for token in tokens {
+            //eprintln!("{}", token);
             let expr = match token.token_type {
                 TokenType::TRUE => Some(Expr::Bool(true)),
                 TokenType::FALSE => Some(Expr::Bool(false)),
                 TokenType::NIL => Some(Expr::Nil),
                 TokenType::NUMBER => Some(Expr::Number(token.literal.clone().unwrap().parse().unwrap())),
+                TokenType::STRING => Some(Expr::String(token.literal.clone().unwrap())),
                 TokenType::EOF => return Some(exprs),
                 _ => None,
             };
