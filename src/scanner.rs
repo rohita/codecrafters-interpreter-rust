@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use crate::error;
 use crate::token::{Token, TokenType};
 use crate::token::TokenType::*;
 
@@ -8,7 +9,6 @@ pub struct Scanner {
     start: usize,
     current: usize,
     line: usize,
-    pub had_error: bool,
 }
 
 impl Scanner {
@@ -19,7 +19,6 @@ impl Scanner {
             current: 0,
             start: 0,
             line: 1,
-            had_error: false,
         }
     }
 
@@ -79,8 +78,7 @@ impl Scanner {
             d if is_digit(*d) => self.number(),
             a if is_alpha(*a) => self.identifier(),
             _ => {
-                report(ln, "".to_string(), format!("Unexpected character: {}", c));
-                self.had_error = true;
+                error::error(ln, format!("Unexpected character: {}", c));
             }
         }
     }
@@ -124,8 +122,7 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            report(self.line, "".to_string(), "Unterminated string.".to_string());
-            self.had_error = true;
+            error::error(self.line, "Unterminated string.".to_string());
             return;
         }
 
@@ -194,10 +191,6 @@ fn is_alpha_numeric(c: char) -> bool {
 
 fn is_digit(c: char) -> bool {
     c >= '0' && c <= '9'
-}
-
-fn report(line: usize, wh: String, message: String) {
-    eprintln!("[line {}] Error{}: {}", line, wh, message);
 }
 
 fn keywoards() -> HashMap<&'static str, TokenType> {
