@@ -21,6 +21,7 @@ impl Parser {
                 TokenType::TRUE => Some(Expr::Bool(true)),
                 TokenType::FALSE => Some(Expr::Bool(false)),
                 TokenType::NIL => Some(Expr::Nil),
+                TokenType::NUMBER => Some(Expr::Number(token.literal.clone().unwrap().parse().unwrap())),
                 TokenType::EOF => return Some(exprs),
                 _ => None,
             };
