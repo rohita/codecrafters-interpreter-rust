@@ -1,6 +1,7 @@
 use crate::error;
 use crate::error::Error;
 use crate::error::Error::ParseError;
+use crate::evaluator::LoxType;
 use crate::expr::Expr;
 use crate::token::{Token, TokenType};
 
@@ -131,20 +132,22 @@ impl Parser {
 
     fn primary(&mut self) -> Result<Expr, Error> {
         if self.match_types(vec![TokenType::FALSE]) {
-            return Ok(Expr::Bool(false));
+            return Ok(Expr::Literal(LoxType::Boolean(false)));
         }
         if self.match_types(vec![TokenType::TRUE]) {
-            return Ok(Expr::Bool(true));
+            return Ok(Expr::Literal(LoxType::Boolean(true)));
         }
         if self.match_types(vec![TokenType::NIL]) {
-            return Ok(Expr::Nil);
+            return Ok(Expr::Literal(LoxType::Nil()));
         }
         
         if self.match_types(vec![TokenType::NUMBER]) {
-            return Ok(Expr::Number(self.previous().literal.clone().unwrap().parse().unwrap()));
+            let num = self.previous().literal.clone().unwrap().parse().unwrap();
+            return Ok(Expr::Literal(LoxType::Number(num)));
         }
         if self.match_types(vec![TokenType::STRING]) {
-            return Ok(Expr::String(self.previous().literal.clone().unwrap()));
+            let string = self.previous().literal.clone().unwrap();
+            return Ok(Expr::Literal(LoxType::String(string)));
         }
         
         if self.match_types(vec![TokenType::LEFT_PAREN]) {

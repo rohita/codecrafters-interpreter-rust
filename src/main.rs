@@ -3,11 +3,13 @@ mod token;
 mod expr;
 mod parser;
 mod error;
+mod evaluator;
 
 use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process::exit;
+use crate::evaluator::Evaluator;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 
@@ -63,7 +65,7 @@ fn evaluate(file_contents: String) {
     let tokens = lexer.scan_tokens();
     let mut parser = Parser::new(tokens);
     if let Some(expr) = parser.parse() {
-        let evaluated = expr.evaluate();
+        let evaluated = Evaluator::evaluate(expr);
         println!("{evaluated}");
     }
 }
