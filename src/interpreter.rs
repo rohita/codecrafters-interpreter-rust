@@ -30,7 +30,10 @@ impl Interpreter {
         for statement in statements {
             match Interpreter::execute(statement) {
                 Ok(_) => continue,
-                Err(error) => error::runtime_error(error),
+                Err(error) => {
+                    error::runtime_error(error);
+                    break
+                },
             }
         }
     }
