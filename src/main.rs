@@ -3,13 +3,14 @@ mod token;
 mod expr;
 mod parser;
 mod error;
-mod evaluator;
+mod interpreter;
+mod stmt;
 
 use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process::exit;
-use crate::evaluator::Evaluator;
+use crate::interpreter::Interpreter;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 
@@ -32,6 +33,7 @@ fn main() {
         "tokenize" => tokenize(file_contents),
         "parse" => parse(file_contents),
         "evaluate" => evaluate(file_contents),
+        "run" => run(file_contents),
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
             return;
@@ -58,7 +60,7 @@ fn parse(file_contents: String) {
     let mut lexer = Scanner::new(file_contents);
     let tokens = lexer.scan_tokens();
     let mut parser = Parser::new(tokens);
-    if let Some(expr) = parser.parse() {
+    if let Ok(expr) = parser.expression() {
         println!("{expr}");
     }
 }
@@ -67,10 +69,18 @@ fn evaluate(file_contents: String) {
     let mut lexer = Scanner::new(file_contents);
     let tokens = lexer.scan_tokens();
     let mut parser = Parser::new(tokens);
-    if let Some(expr) = parser.parse() {
-        match Evaluator::evaluate(expr) {
+    if let Ok(expr) = parser.expression() {
+        match Interpreter::evaluate(expr) {
             Ok(evaluated) => println!("{evaluated}"),
             Err(error) => error::runtime_error(error),
         } 
     }
+}
+
+fn run(file_contents: String) {
+    let mut lexer = Scanner::new(file_contents);
+    let tokens = lexer.scan_tokens();
+    let mut parser = Parser::new(tokens);
+    let stmts = parser.parse();
+    Interpreter::interpret(stmts);
 }

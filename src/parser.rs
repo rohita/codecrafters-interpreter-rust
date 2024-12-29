@@ -1,8 +1,9 @@
 use crate::error;
 use crate::error::Error;
 use crate::error::Error::ParseError;
-use crate::evaluator::Object;
+use crate::interpreter::Object;
 use crate::expr::Expr;
+use crate::stmt::Stmt;
 use crate::token::{Token, TokenType};
 
 #[derive(Default)]
@@ -16,14 +17,42 @@ impl Parser {
         Self { tokens, current: 0 }
     }
     
-    pub fn parse(&mut self) -> Option<Expr> {
-        match self.expression() {
-            Ok(expr) => Some(expr),
-            Err(_) => None
+    pub fn parse(&mut self) -> Vec<Stmt> {
+        let mut stmts = Vec::new();
+        while !self.is_at_end() {
+            match self.statement() {
+                Ok(stmt) => stmts.push(stmt),
+                Err(_) => break, 
+            }
+        }
+        stmts
+    }
+    
+    fn statement(&mut self) -> Result<Stmt, Error> {
+        if self.match_types(vec![TokenType::PRINT]) {
+            return self.print_statement();
+        }
+        
+        self.expression_statement()
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt, Error> {
+        let value = self.expression()?;
+        match self.consume(TokenType::SEMICOLON, "Expect ';' after value.") {
+            Ok(_) => Ok(Stmt::Print(Box::from(value))),
+            Err(err) => Err(err),
         }
     }
     
-    fn expression(&mut self) -> Result<Expr, Error> {
+    fn expression_statement(&mut self) -> Result<Stmt, Error> {
+        let expr = self.expression()?;
+        match self.consume(TokenType::SEMICOLON, "Expect ';' after expression.") {
+            Ok(_) => Ok(Stmt::Expression(Box::from(expr))),
+            Err(err) => Err(err),
+        }
+    }
+    
+    pub fn expression(&mut self) -> Result<Expr, Error> {
         self.equality()
     }
     

@@ -1,4 +1,4 @@
-use crate::evaluator::Object;
+use crate::interpreter::Object;
 use crate::token::Token;
 use std::fmt::Display;
 
@@ -11,6 +11,17 @@ pub enum Expr {
         right: Box<Expr>,
     },
     Grouping(Box<Expr>),
+    /*
+    https://craftinginterpreters.com/appendix-ii.html#expression-statement
+    AssignExpr(Assign expr);
+    CallExpr(Call expr);
+    GetExpr(Get expr);
+    LogicalExpr(Logical expr);
+    SetExpr(Set expr);
+    SuperExpr(Super expr);
+    ThisExpr(This expr);
+    VariableExpr(Variable expr);
+     */
 }
 
 impl Display for Expr {

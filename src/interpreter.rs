@@ -1,9 +1,11 @@
 use std::fmt::Display;
+use crate::error;
 use crate::error::Error;
 use crate::expr::Expr;
+use crate::stmt::Stmt;
 use crate::token::TokenType;
 
-pub struct Evaluator;
+pub struct Interpreter;
 
 pub enum Object {
     Boolean(bool),
@@ -23,13 +25,33 @@ impl Display for Object {
     }
 }
 
-impl Evaluator {
+impl Interpreter {
+    pub fn interpret(statements: Vec<Stmt>) {
+        for statement in statements {
+            match Interpreter::execute(statement) {
+                Ok(_) => continue,
+                Err(error) => error::runtime_error(error),
+            }
+        }
+    }
+    
+    fn execute(stmt: Stmt) -> Result<Object, Error> {
+        match stmt {
+            Stmt::Expression(expr) => Interpreter::evaluate(*expr),
+            Stmt::Print(expr) => {
+                let evaluated = Interpreter::evaluate(*expr)?;
+                println!("{evaluated}");
+                Ok(evaluated)
+            }
+        }
+    }
+    
     pub fn evaluate(expression: Expr) -> Result<Object, Error> {
         let return_val = match expression {
             Expr::Literal(value) => value,
-            Expr::Grouping(e) => Evaluator::evaluate(*e)?,
+            Expr::Grouping(e) => Interpreter::evaluate(*e)?,
             Expr::Unary{operator, right} => {
-                let value = Evaluator::evaluate(*right)?;
+                let value = Interpreter::evaluate(*right)?;
                 match operator.token_type {
                     TokenType::MINUS => match value {
                         Object::Number(n) => Object::Number(-n),
@@ -45,8 +67,8 @@ impl Evaluator {
                 }
             },
             Expr::Binary {operator, left, right} => {
-                let left = Evaluator::evaluate(*left)?;
-                let right = Evaluator::evaluate(*right)?;
+                let left = Interpreter::evaluate(*left)?;
+                let right = Interpreter::evaluate(*right)?;
 
                 match (left, right) {
                     (Object::Number(left), Object::Number(right)) => match operator.token_type {
