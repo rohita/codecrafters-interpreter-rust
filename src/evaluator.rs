@@ -61,6 +61,10 @@ impl Evaluator {
                         TokenType::GREATER_EQUAL => todo!(),
                         _ => unreachable!(),
                     },
+                    (Object::String(left), Object::String(right)) => match operator.token_type {
+                        TokenType::PLUS => Object::String(left + right.as_str()),
+                        _ => unreachable!(),
+                    }
                     _ => unreachable!(),
                 }
             }
