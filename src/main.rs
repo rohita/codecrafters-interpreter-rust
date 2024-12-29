@@ -38,8 +38,11 @@ fn main() {
         }
     }
 
-    if error::failed() {
+    if error::had_error() {
         exit(65);
+    }
+    if error::had_runtime_error() {
+        exit(70);
     }
 }
 
@@ -65,7 +68,9 @@ fn evaluate(file_contents: String) {
     let tokens = lexer.scan_tokens();
     let mut parser = Parser::new(tokens);
     if let Some(expr) = parser.parse() {
-        let evaluated = Evaluator::evaluate(expr);
-        println!("{evaluated}");
+        match Evaluator::evaluate(expr) {
+            Ok(evaluated) => println!("{evaluated}"),
+            Err(error) => error::runtime_error(error),
+        } 
     }
 }

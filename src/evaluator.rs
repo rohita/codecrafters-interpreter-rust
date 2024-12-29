@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use crate::error::Error;
 use crate::expr::Expr;
 use crate::token::TokenType;
 
@@ -23,16 +24,16 @@ impl Display for Object {
 }
 
 impl Evaluator {
-    pub fn evaluate(expression: Expr) -> Object {
-        match expression {
+    pub fn evaluate(expression: Expr) -> Result<Object, Error> {
+        let return_val = match expression {
             Expr::Literal(value) => value,
-            Expr::Grouping(e) => Evaluator::evaluate(*e),
+            Expr::Grouping(e) => Evaluator::evaluate(*e)?,
             Expr::Unary{operator, right} => {
-                let value = Evaluator::evaluate(*right);
+                let value = Evaluator::evaluate(*right)?;
                 match operator.token_type {
                     TokenType::MINUS => match value {
                         Object::Number(n) => Object::Number(-n),
-                        _ => unreachable!(),
+                        _ => return Err(Error::RuntimeError{token: operator, message: "Operand must be a number.".to_string()}),
                     },
                     TokenType::BANG => match value {
                         Object::Boolean(b) => Object::Boolean(!b),
@@ -44,8 +45,8 @@ impl Evaluator {
                 }
             },
             Expr::Binary {operator, left, right} => {
-                let left = Evaluator::evaluate(*left);
-                let right = Evaluator::evaluate(*right);
+                let left = Evaluator::evaluate(*left)?;
+                let right = Evaluator::evaluate(*right)?;
 
                 match (left, right) {
                     (Object::Number(left), Object::Number(right)) => match operator.token_type {
@@ -84,6 +85,7 @@ impl Evaluator {
                     }
                 }
             }
-        }
+        };
+        Ok(return_val)
     }
 }
