@@ -32,7 +32,7 @@ impl Evaluator {
                 match operator.token_type {
                     TokenType::MINUS => match value {
                         Value::Number(n) => Value::Number(-n),
-                        _ => panic!("Expected number"),
+                        _ => unreachable!(),
                     },
                     TokenType::BANG => match value {
                         Value::Boolean(b) => Value::Boolean(!b),
@@ -40,10 +40,24 @@ impl Evaluator {
                         Value::Number(n) => Value::Boolean(n == 0.0),
                         Value::String(s) => Value::Boolean(s.is_empty()),
                     },
-                    _ => panic!("Expected unary operator"),
+                    _ => unreachable!(),
+                }
+            },
+            Expr::Binary {operator, left, right} => {
+                let left = Evaluator::evaluate(*left);
+                let right = Evaluator::evaluate(*right);
+                match operator.token_type {
+                    TokenType::STAR => match (left, right) {
+                        (Value::Number(l), Value::Number(r)) => Value::Number(l * r),
+                        _ => unreachable!(),
+                    },
+                    TokenType::SLASH => match (left, right) {
+                        (Value::Number(l), Value::Number(r)) => Value::Number(l / r),
+                        _ => unreachable!(),
+                    },
+                    _ => todo!(),
                 }
             }
-            _ => Value::Nil,
         }
     }
 }
