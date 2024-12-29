@@ -33,7 +33,7 @@ impl Evaluator {
                 match operator.token_type {
                     TokenType::MINUS => match value {
                         Object::Number(n) => Object::Number(-n),
-                        _ => return Err(Error::RuntimeError{token: operator, message: "Operand must be a number.".to_string()}),
+                        _ => return Err(Error::RuntimeError(operator, "Operand must be a number.".to_string())),
                     },
                     TokenType::BANG => match value {
                         Object::Boolean(b) => Object::Boolean(!b),
@@ -66,22 +66,22 @@ impl Evaluator {
                         TokenType::PLUS => Object::String(left + right.as_str()),
                         TokenType::BANG_EQUAL => Object::Boolean(left != right),
                         TokenType::EQUAL_EQUAL => Object::Boolean(left == right),
-                        _ => unreachable!(),
+                        _ => return Err(Error::RuntimeError(operator, "Operands must be numbers.".to_string())),
                     },
                     (Object::Boolean(left), Object::Boolean(right)) => match operator.token_type {
                         TokenType::BANG_EQUAL => Object::Boolean(left != right),
                         TokenType::EQUAL_EQUAL => Object::Boolean(left == right),
-                        _ => unreachable!(),
+                        _ => return Err(Error::RuntimeError(operator, "Operands must be numbers.".to_string())),
                     },
                     (Object::Nil, Object::Nil) => match operator.token_type {
                         TokenType::BANG_EQUAL => Object::Boolean(false),
                         TokenType::EQUAL_EQUAL => Object::Boolean(true),
-                        _ => unreachable!(),
+                        _ => return Err(Error::RuntimeError(operator, "Operands must be numbers.".to_string())),
                     }
                     _ => match operator.token_type {
                         TokenType::BANG_EQUAL => Object::Boolean(true),
                         TokenType::EQUAL_EQUAL => Object::Boolean(false),
-                        _ => unreachable!(),
+                        _ => return Err(Error::RuntimeError(operator, "Operands must be numbers.".to_string())),
                     }
                 }
             }

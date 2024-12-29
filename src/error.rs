@@ -9,7 +9,7 @@ pub fn error(line: usize, message: String) {
 
 pub fn runtime_error(error: Error) {
     match error {
-        Error::RuntimeError {token, message} => {
+        Error::RuntimeError(token, message) => {
             eprintln!("{}\n[line {}]", message, token.line);
             unsafe {
                 HAD_RUNTIME_ERROR = true;
@@ -48,5 +48,5 @@ pub fn had_runtime_error() -> bool {
 
 pub enum Error {
     ParseError,
-    RuntimeError{token: Token, message: String},
+    RuntimeError(Token, String),
 }
