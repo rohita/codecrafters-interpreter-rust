@@ -23,7 +23,7 @@ impl Display for Expr {
             Expr::Number(n) => f.write_fmt(format_args!("{n:?}")),
             Expr::String(s) => f.write_fmt(format_args!("{s}")),
             Expr::Unary { operator, right } => {
-                f.write_fmt(format_args!("{} {right}", operator.lexeme))
+                f.write_fmt(format_args!("({} {right})", operator.lexeme))
             }
             Expr::Binary {
                 operator,

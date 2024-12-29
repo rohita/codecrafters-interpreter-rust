@@ -47,7 +47,7 @@ impl Parser {
     }
     
     fn expression(&mut self) -> Result<Expr, Error> {
-        self.primary()
+        self.equality()
     }
     
     fn equality(&mut self) -> Result<Expr, Error> {
