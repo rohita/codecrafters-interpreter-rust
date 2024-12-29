@@ -1,9 +1,9 @@
-use crate::evaluator::Value;
+use crate::evaluator::Object;
 use crate::token::Token;
 use std::fmt::Display;
 
 pub enum Expr {
-    Literal(Value),
+    Literal(Object),
     Unary { operator: Token, right: Box<Expr> },
     Binary {
         operator: Token,
@@ -16,9 +16,9 @@ pub enum Expr {
 impl Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Expr::Literal(t) => match t {
-                Value::Number(n) => f.write_fmt(format_args!("{n:?}")),
-                _ => f.write_fmt(format_args!("{t}")),
+            Expr::Literal(value) => match value {
+                Object::Number(n) => f.write_fmt(format_args!("{n:?}")),
+                _ => f.write_fmt(format_args!("{value}")),
             },
             Expr::Unary { operator, right } => {
                 f.write_fmt(format_args!("({} {right})", operator.lexeme))
