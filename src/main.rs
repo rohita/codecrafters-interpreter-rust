@@ -21,9 +21,15 @@ fn main() {
     let command = &args[1];
     let filename = &args[2];
 
+    let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
+        eprintln!("Failed to read file {filename}");
+        exit(65);
+    });
+
     match command.as_str() {
-        "tokenize" => tokenize(filename),
-        "parse" => parse(filename),
+        "tokenize" => tokenize(file_contents),
+        "parse" => parse(file_contents),
+        "evaluate" => evaluate(file_contents),
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
             return;
@@ -35,19 +41,7 @@ fn main() {
     }
 }
 
-fn tokenize(filename: &String) {
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
-    writeln!(io::stderr(), "Logs from your program will appear here!").unwrap();
-
-    let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
-        writeln!(io::stderr(), "Failed to read file {}", filename).unwrap();
-        String::new()
-    });
-
-    run(file_contents);
-}
-
-fn run(file_contents: String) {
+fn tokenize(file_contents: String) {
     let mut scanner = Scanner::new(file_contents);
     let tokens = scanner.scan_tokens();
     for token in tokens {
@@ -55,18 +49,21 @@ fn run(file_contents: String) {
     }
 }
 
-fn parse(filename: &String) {
-    let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
-        eprintln!("Failed to read file {filename}");
-        String::new()
-    });
-    
-    if !file_contents.is_empty() {
-        let mut lexer = Scanner::new(file_contents);
-        let tokens = lexer.scan_tokens();
-        let mut parser = Parser::new(tokens);
-        if let Some(expr) = parser.parse() {
-            println!("{expr}");
-        }
+fn parse(file_contents: String) {
+    let mut lexer = Scanner::new(file_contents);
+    let tokens = lexer.scan_tokens();
+    let mut parser = Parser::new(tokens);
+    if let Some(expr) = parser.parse() {
+        println!("{expr}");
+    }
+}
+
+fn evaluate(file_contents: String) {
+    let mut lexer = Scanner::new(file_contents);
+    let tokens = lexer.scan_tokens();
+    let mut parser = Parser::new(tokens);
+    if let Some(expr) = parser.parse() {
+        let evaluated = expr.evaluate();
+        println!("{evaluated}");
     }
 }

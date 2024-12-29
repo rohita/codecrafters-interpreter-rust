@@ -34,3 +34,15 @@ impl Display for Expr {
         }
     }
 }
+
+impl Expr {
+    pub fn evaluate(&self) -> String {
+        match self {
+            Expr::Bool(b) => format!("{}", b),
+            Expr::Nil => "nil".to_string(),
+            Expr::Number(n) => format!("{}", n),
+            Expr::String(s) => format!("{}", s),
+            _ => String::new()
+        }
+    }
+}
