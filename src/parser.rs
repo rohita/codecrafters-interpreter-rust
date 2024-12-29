@@ -1,7 +1,7 @@
 use crate::error;
 use crate::error::Error;
 use crate::error::Error::ParseError;
-use crate::evaluator::LoxType;
+use crate::evaluator::Value;
 use crate::expr::Expr;
 use crate::token::{Token, TokenType};
 
@@ -15,30 +15,6 @@ impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Self { tokens, current: 0 }
     }
-    
-    /*
-    pub fn parse(&self) -> Option<Vec<Expr>> {
-        if self.tokens.is_empty() {
-            return None;
-        }
-        let mut exprs = Vec::new();
-        let tokens = self.tokens.iter().peekable();
-        for token in tokens {
-            //eprintln!("{}", token);
-            let expr = match token.token_type {
-                TokenType::TRUE => Some(Expr::Bool(true)),
-                TokenType::FALSE => Some(Expr::Bool(false)),
-                TokenType::NIL => Some(Expr::Nil),
-                TokenType::NUMBER => Some(Expr::Number(token.literal.clone().unwrap().parse().unwrap())),
-                TokenType::STRING => Some(Expr::String(token.literal.clone().unwrap())),
-                TokenType::EOF => return Some(exprs),
-                _ => None,
-            };
-            exprs.push(expr?);
-        }
-        Some(exprs)
-    }
-   */
     
     pub fn parse(&mut self) -> Option<Expr> {
         match self.expression() {
@@ -132,22 +108,22 @@ impl Parser {
 
     fn primary(&mut self) -> Result<Expr, Error> {
         if self.match_types(vec![TokenType::FALSE]) {
-            return Ok(Expr::Literal(LoxType::Boolean(false)));
+            return Ok(Expr::Literal(Value::Boolean(false)));
         }
         if self.match_types(vec![TokenType::TRUE]) {
-            return Ok(Expr::Literal(LoxType::Boolean(true)));
+            return Ok(Expr::Literal(Value::Boolean(true)));
         }
         if self.match_types(vec![TokenType::NIL]) {
-            return Ok(Expr::Literal(LoxType::Nil()));
+            return Ok(Expr::Literal(Value::Nil));
         }
         
         if self.match_types(vec![TokenType::NUMBER]) {
             let num = self.previous().literal.clone().unwrap().parse().unwrap();
-            return Ok(Expr::Literal(LoxType::Number(num)));
+            return Ok(Expr::Literal(Value::Number(num)));
         }
         if self.match_types(vec![TokenType::STRING]) {
             let string = self.previous().literal.clone().unwrap();
-            return Ok(Expr::Literal(LoxType::String(string)));
+            return Ok(Expr::Literal(Value::String(string)));
         }
         
         if self.match_types(vec![TokenType::LEFT_PAREN]) {
