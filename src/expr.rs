@@ -6,16 +6,13 @@ pub enum Expr {
     Nil,
     Number(f64),
     String(String),
-    Unary {
-        operator: Token,
-        right: Box<Expr>,
-    },
+    Unary { operator: Token, right: Box<Expr> },
     Binary {
         operator: Token,
         left: Box<Expr>,
         right: Box<Expr>,
     },
-    Grouping(Vec<Expr>),
+    Grouping(Box<Expr>),
 }
 
 impl Display for Expr {
@@ -33,7 +30,7 @@ impl Display for Expr {
                 left,
                 right,
             } => f.write_fmt(format_args!("({} {left} {right})", operator.lexeme)),
-            Expr::Grouping(_) => todo!(),
+            Expr::Grouping(expression) => f.write_fmt(format_args!("(group {})", expression)),
         }
     }
 }

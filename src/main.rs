@@ -64,9 +64,8 @@ fn parse(filename: &String) {
     if !file_contents.is_empty() {
         let mut lexer = Scanner::new(file_contents);
         let tokens = lexer.scan_tokens();
-        let parser = Parser::new(tokens);
-        let exprs = parser.parse().unwrap();
-        for expr in exprs {
+        let mut parser = Parser::new(tokens);
+        if let Some(expr) = parser.parse() {
             println!("{expr}");
         }
     }
