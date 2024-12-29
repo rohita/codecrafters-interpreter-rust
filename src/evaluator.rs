@@ -57,15 +57,31 @@ impl Evaluator {
                         TokenType::GREATER_EQUAL => Object::Boolean(left >= right),
                         TokenType::LESS => Object::Boolean(left < right),
                         TokenType::LESS_EQUAL => Object::Boolean(left <= right),
-                        TokenType::BANG_EQUAL => todo!(),
-                        TokenType::EQUAL_EQUAL => todo!(),
+                        TokenType::BANG_EQUAL => Object::Boolean(left != right),
+                        TokenType::EQUAL_EQUAL => Object::Boolean(left == right),
                         _ => unreachable!(),
                     },
                     (Object::String(left), Object::String(right)) => match operator.token_type {
                         TokenType::PLUS => Object::String(left + right.as_str()),
+                        TokenType::BANG_EQUAL => Object::Boolean(left != right),
+                        TokenType::EQUAL_EQUAL => Object::Boolean(left == right),
+                        _ => unreachable!(),
+                    },
+                    (Object::Boolean(left), Object::Boolean(right)) => match operator.token_type {
+                        TokenType::BANG_EQUAL => Object::Boolean(left != right),
+                        TokenType::EQUAL_EQUAL => Object::Boolean(left == right),
+                        _ => unreachable!(),
+                    },
+                    (Object::Nil, Object::Nil) => match operator.token_type {
+                        TokenType::BANG_EQUAL => Object::Boolean(false),
+                        TokenType::EQUAL_EQUAL => Object::Boolean(true),
                         _ => unreachable!(),
                     }
-                    _ => unreachable!(),
+                    _ => match operator.token_type {
+                        TokenType::BANG_EQUAL => Object::Boolean(true),
+                        TokenType::EQUAL_EQUAL => Object::Boolean(false),
+                        _ => unreachable!(),
+                    }
                 }
             }
         }
