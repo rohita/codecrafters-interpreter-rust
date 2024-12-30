@@ -61,24 +61,35 @@ impl Parser {
         if self.match_types(vec![PRINT]) {
             return self.print_statement();
         }
+        
+        if self.match_types(vec![LEFT_BRACE]) {
+            return self.block();
+        }
 
         self.expression_statement()
     }
 
     fn print_statement(&mut self) -> Result<Stmt, Error> {
         let value = self.expression()?;
-        match self.consume(SEMICOLON, "Expect ';' after value.") {
-            Ok(_) => Ok(Stmt::Print(Box::from(value))),
-            Err(err) => Err(err),
-        }
+        self.consume(SEMICOLON, "Expect ';' after value.")?;
+        Ok(Stmt::Print(value))
     }
 
     fn expression_statement(&mut self) -> Result<Stmt, Error> {
         let expr = self.expression()?;
-        match self.consume(SEMICOLON, "Expect ';' after expression.") {
-            Ok(_) => Ok(Stmt::Expression(Box::from(expr))),
-            Err(err) => Err(err),
+        self.consume(SEMICOLON, "Expect ';' after expression.")?;
+        Ok(Stmt::Expression(expr))
+    }
+
+    fn block(&mut self) -> Result<Stmt, Error> {
+        let mut statements = Vec::new();
+        
+        while !self.check(RIGHT_BRACE) && !self.is_at_end() {
+            statements.push(self.declaration().unwrap());
         }
+        
+        self.consume(RIGHT_BRACE, "Expect '}' after block.")?;
+        Ok(Stmt::Block(statements))
     }
 
     pub fn expression(&mut self) -> Result<Expr, Error> {

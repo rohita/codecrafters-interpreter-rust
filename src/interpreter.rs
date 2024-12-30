@@ -50,9 +50,9 @@ impl Interpreter {
 
     fn execute(&mut self, stmt: Stmt) -> Result<Object, Error> {
         match stmt {
-            Stmt::Expression(expr) => self.evaluate(*expr),
+            Stmt::Expression(expr) => self.evaluate(expr),
             Stmt::Print(expr) => {
-                let evaluated = self.evaluate(*expr)?;
+                let evaluated = self.evaluate(expr)?;
                 println!("{evaluated}");
                 Ok(evaluated)
             },
@@ -63,6 +63,21 @@ impl Interpreter {
                 }
                 self.environment.define(name.lexeme, value.clone());
                 Ok(value)
+            },
+            Stmt::Block(statements) => {
+                let previous = &self.environment.clone();
+                self.environment = Environment::new_enclosing(previous.clone());
+
+                let results: Result<Vec<_>, _> = statements
+                    .into_iter()
+                    .map(|s| self.execute(s))
+                    .collect();
+                
+                self.environment = previous.clone();
+                match results {
+                    Ok(_) => Ok(Object::Nil),
+                    Err(error) => Err(error),
+                }
             }
         }
     }

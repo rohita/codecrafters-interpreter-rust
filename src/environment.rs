@@ -3,18 +3,32 @@ use crate::error::Error;
 use crate::interpreter::Object;
 use crate::token::Token;
 
+#[derive(Clone)]
 pub struct Environment {
-    values: HashMap<String, Object>
+    values: HashMap<String, Object>,
+    enclosing: Option<Box<Environment>>, 
 }
 
 impl Environment {
+    /// Constructor for the global scope’s environment
     pub fn new() -> Environment {
         Self {
-            values: HashMap::new()
+            values: HashMap::new(),
+            enclosing: None
+        }
+    }
+    
+    /// This constructor creates a new local scope nested inside the given outer one.
+    pub fn new_enclosing(enclosing: Environment) -> Environment {
+        Self {
+            values: HashMap::new(),
+            enclosing: Some(Box::new(enclosing))
         }
     }
     
     pub fn define(&mut self, name: String, value: Object) {
+        // A new variable is always declared in the current innermost scope.
+        // No need to define in outer scope.
         self.values.insert(name, value);
     }
     
@@ -27,6 +41,12 @@ impl Environment {
             self.values.insert(variable, value.clone());
             return Ok(value);
         }
+
+        // Walk the chain to find if the key exists
+        if self.enclosing.is_some() {
+            self.enclosing.as_mut().unwrap().assign(name.clone(), value)?;
+        }
+
         Err(Error::RuntimeError(name, format!("Undefined variable: '{}'", variable)))
     }
     
@@ -35,6 +55,11 @@ impl Environment {
         if self.values.contains_key(&variable) {
             return Ok(self.values[&variable].clone());
         }; 
-        Err(Error::RuntimeError(name, format!("Undefined variable: '{}'", variable)))
+        
+        // Walk the chain to find if the key exists
+        match &self.enclosing {
+            Some(outer) => outer.get(name),
+            None => Err(Error::RuntimeError(name, format!("Undefined variable: '{}'", variable)))
+        }
     }
 }
