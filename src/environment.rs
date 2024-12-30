@@ -3,7 +3,7 @@ use crate::error::Error;
 use crate::interpreter::Object;
 use crate::token::Token;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Environment {
     values: HashMap<String, Object>,
     enclosing: Option<Box<Environment>>, 
@@ -22,7 +22,7 @@ impl Environment {
     pub fn new_enclosing(enclosing: Environment) -> Environment {
         Self {
             values: HashMap::new(),
-            enclosing: Some(Box::new(enclosing))
+            enclosing: Some(Box::new(enclosing)),
         }
     }
     
@@ -44,7 +44,7 @@ impl Environment {
 
         // Walk the chain to find if the key exists
         if self.enclosing.is_some() {
-            self.enclosing.as_mut().unwrap().assign(name.clone(), value)?;
+            return self.enclosing.as_mut().unwrap().assign(name.clone(), value);
         }
 
         Err(Error::RuntimeError(name, format!("Undefined variable: '{}'", variable)))
@@ -60,6 +60,13 @@ impl Environment {
         match &self.enclosing {
             Some(outer) => outer.get(name),
             None => Err(Error::RuntimeError(name, format!("Undefined variable: '{}'", variable)))
+        }
+    }
+    
+    pub fn get_enclosing(&self) -> Environment {
+        match &self.enclosing {
+            None => panic!("No enclosing environment"),
+            Some(outer) => *outer.clone(),
         }
     }
 }

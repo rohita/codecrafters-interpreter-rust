@@ -10,7 +10,7 @@ pub struct Interpreter {
     environment: Environment,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Object {
     Boolean(bool),
     String(String),
@@ -65,15 +65,14 @@ impl Interpreter {
                 Ok(value)
             },
             Stmt::Block(statements) => {
-                let previous = &self.environment.clone();
-                self.environment = Environment::new_enclosing(previous.clone());
+                self.environment = Environment::new_enclosing(self.environment.clone());
 
                 let results: Result<Vec<_>, _> = statements
                     .into_iter()
                     .map(|s| self.execute(s))
                     .collect();
                 
-                self.environment = previous.clone();
+                self.environment = self.environment.get_enclosing();
                 match results {
                     Ok(_) => Ok(Object::Nil),
                     Err(error) => Err(error),
