@@ -5,6 +5,7 @@ mod parser;
 mod error;
 mod interpreter;
 mod stmt;
+mod environment;
 
 use std::env;
 use std::fs;
@@ -70,7 +71,8 @@ fn evaluate(file_contents: String) {
     let tokens = lexer.scan_tokens();
     let mut parser = Parser::new(tokens);
     if let Ok(expr) = parser.expression() {
-        match Interpreter::evaluate(expr) {
+        let interpreter = Interpreter::new();
+        match interpreter.evaluate(expr) {
             Ok(evaluated) => println!("{evaluated}"),
             Err(error) => error::runtime_error(error),
         } 
@@ -82,5 +84,6 @@ fn run(file_contents: String) {
     let tokens = lexer.scan_tokens();
     let mut parser = Parser::new(tokens);
     let stmts = parser.parse();
-    Interpreter::interpret(stmts);
+    let mut interpreter = Interpreter::new();
+    interpreter.interpret(stmts);
 }

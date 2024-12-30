@@ -1,12 +1,16 @@
 use std::fmt::Display;
+use crate::environment::Environment;
 use crate::error;
 use crate::error::Error;
 use crate::expr::Expr;
 use crate::stmt::Stmt;
 use crate::token::TokenType;
 
-pub struct Interpreter;
+pub struct Interpreter {
+    environment: Environment,
+}
 
+#[derive(Clone)]
 pub enum Object {
     Boolean(bool),
     String(String),
@@ -26,9 +30,15 @@ impl Display for Object {
 }
 
 impl Interpreter {
-    pub fn interpret(statements: Vec<Stmt>) {
+    pub fn new() -> Interpreter {
+        Self {
+            environment: Environment::new(),
+        }
+    }
+
+    pub fn interpret(&mut self, statements: Vec<Stmt>) {
         for statement in statements {
-            match Interpreter::execute(statement) {
+            match self.execute(statement) {
                 Ok(_) => continue,
                 Err(error) => {
                     error::runtime_error(error);
@@ -37,24 +47,32 @@ impl Interpreter {
             }
         }
     }
-    
-    fn execute(stmt: Stmt) -> Result<Object, Error> {
+
+    fn execute(&mut self, stmt: Stmt) -> Result<Object, Error> {
         match stmt {
-            Stmt::Expression(expr) => Interpreter::evaluate(*expr),
+            Stmt::Expression(expr) => self.evaluate(*expr),
             Stmt::Print(expr) => {
-                let evaluated = Interpreter::evaluate(*expr)?;
+                let evaluated = self.evaluate(*expr)?;
                 println!("{evaluated}");
                 Ok(evaluated)
+            },
+            Stmt::Var(name, initializer) => {
+                let mut value = Object::Nil;
+                if let Some(intz) = initializer {
+                    value = self.evaluate(intz)?;
+                }
+                self.environment.define(name.lexeme, value.clone());
+                Ok(value)
             }
         }
     }
-    
-    pub fn evaluate(expression: Expr) -> Result<Object, Error> {
+
+    pub fn evaluate(&self, expression: Expr) -> Result<Object, Error> {
         let return_val = match expression {
             Expr::Literal(value) => value,
-            Expr::Grouping(e) => Interpreter::evaluate(*e)?,
+            Expr::Grouping(e) => self.evaluate(*e)?,
             Expr::Unary{operator, right} => {
-                let value = Interpreter::evaluate(*right)?;
+                let value = self.evaluate(*right)?;
                 match operator.token_type {
                     TokenType::MINUS => match value {
                         Object::Number(n) => Object::Number(-n),
@@ -70,8 +88,8 @@ impl Interpreter {
                 }
             },
             Expr::Binary {operator, left, right} => {
-                let left = Interpreter::evaluate(*left)?;
-                let right = Interpreter::evaluate(*right)?;
+                let left = self.evaluate(*left)?;
+                let right = self.evaluate(*right)?;
 
                 match (left, right) {
                     (Object::Number(left), Object::Number(right)) => match operator.token_type {
@@ -109,7 +127,8 @@ impl Interpreter {
                         _ => return Err(Error::RuntimeError(operator, "Operands must be numbers.".to_string())),
                     }
                 }
-            }
+            },
+            Expr::Variable(name) => self.environment.get(name)?
         };
         Ok(return_val)
     }
