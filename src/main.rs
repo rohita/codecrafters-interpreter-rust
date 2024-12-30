@@ -71,7 +71,7 @@ fn evaluate(file_contents: String) {
     let tokens = lexer.scan_tokens();
     let mut parser = Parser::new(tokens);
     if let Ok(expr) = parser.expression() {
-        let interpreter = Interpreter::new();
+        let mut interpreter = Interpreter::new();
         match interpreter.evaluate(expr) {
             Ok(evaluated) => println!("{evaluated}"),
             Err(error) => error::runtime_error(error),

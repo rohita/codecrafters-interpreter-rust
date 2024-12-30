@@ -12,9 +12,9 @@ pub enum Expr {
     },
     Grouping(Box<Expr>),
     Variable(Token),
+    Assign(Token, Box<Expr>),
     /*
     https://craftinginterpreters.com/appendix-ii.html#expression-statement
-    AssignExpr(Assign expr);
     CallExpr(Call expr);
     GetExpr(Get expr);
     LogicalExpr(Logical expr);
@@ -41,6 +41,7 @@ impl Display for Expr {
             } => f.write_fmt(format_args!("({} {left} {right})", operator.lexeme)),
             Expr::Grouping(expression) => f.write_fmt(format_args!("(group {})", expression)),
             Expr::Variable(token) => f.write_fmt(format_args!("(var {})", token.lexeme)),
+            Expr::Assign(token, right) => f.write_fmt(format_args!("(= {} {})", token.lexeme, right)),
         }
     }
 }

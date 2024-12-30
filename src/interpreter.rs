@@ -67,7 +67,7 @@ impl Interpreter {
         }
     }
 
-    pub fn evaluate(&self, expression: Expr) -> Result<Object, Error> {
+    pub fn evaluate(&mut self, expression: Expr) -> Result<Object, Error> {
         let return_val = match expression {
             Expr::Literal(value) => value,
             Expr::Grouping(e) => self.evaluate(*e)?,
@@ -128,7 +128,12 @@ impl Interpreter {
                     }
                 }
             },
-            Expr::Variable(name) => self.environment.get(name)?
+            Expr::Variable(name) => self.environment.get(name)?,
+            Expr::Assign(name, expr) => {
+                let value = self.evaluate(*expr)?;
+                self.environment.assign(name, value.clone())?;
+                value
+            },
         };
         Ok(return_val)
     }
