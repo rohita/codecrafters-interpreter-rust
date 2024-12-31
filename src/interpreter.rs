@@ -2,6 +2,7 @@ use crate::environment::Environment;
 use crate::error;
 use crate::error::Error;
 use crate::expr::Expr;
+use crate::native_functions::globals;
 use crate::object::Object;
 use crate::stmt::Stmt;
 use crate::token::TokenType;
@@ -13,7 +14,10 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new() -> Interpreter {
         Self {
-            environment: Environment::new(),
+            // The 'environment' field in the interpreter changes as we enter 
+            // and exit local scopes. It tracks the current environment. This 
+            // 'globals' holds a fixed reference to the outermost global environment.
+            environment: globals(),
         }
     }
 
@@ -185,6 +189,15 @@ impl Interpreter {
                 // On the first example, "hi" is truthy, so the 'or' short-circuits and returns that. 
                 // On the second example, 'nil is falsey, so it evaluates and returns the second operand, "yes".
                 self.evaluate(*right)?
+            },
+            Expr::Call { callee, arguments, paren } => {
+                let callee_evaluated = self.evaluate(*callee)?;    
+                let mut args_evaluated = Vec::new();
+                for argument in arguments {
+                    args_evaluated.push(self.evaluate(argument)?);
+                }
+
+                callee_evaluated.call(args_evaluated, paren)?
             },
         };
         Ok(return_val)

@@ -7,6 +7,7 @@ mod scanner;
 mod stmt;
 mod token;
 mod object;
+mod native_functions;
 
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;

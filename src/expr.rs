@@ -2,7 +2,7 @@ use crate::object::Object;
 use crate::token::Token;
 use std::fmt::Display;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum Expr {
     Literal {
         value: Object,
@@ -31,9 +31,15 @@ pub enum Expr {
         operator: Token,
         right: Box<Expr>,
     },
+    Call {
+        callee: Box<Expr>,
+        arguments: Vec<Expr>,
+        /// closing parenthesis location is used to
+        /// report a runtime error caused by a function call
+        paren: Token,
+    },
     /*
     To be implemented:
-    CallExpr(Call expr);
     GetExpr(Get expr);
     LogicalExpr(Logical expr);
     SetExpr(Set expr);
@@ -63,6 +69,10 @@ impl Display for Expr {
             Expr::Logical { left, operator, right } => {
                 f.write_fmt(format_args!("({} {left} {right})", operator.lexeme))
             },
+            Expr::Call { callee, arguments, paren: _ } => {
+                let string_vec = arguments.into_iter().map(Expr::to_string).collect::<Vec<String>>();
+                f.write_fmt(format_args!("({callee} {})", string_vec.join(" ")))
+            }
         }
     }
 }

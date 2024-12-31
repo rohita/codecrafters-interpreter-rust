@@ -330,7 +330,36 @@ impl Parser {
             });
         }
 
-        self.primary()
+        self.call()
+    }
+    
+    fn call(&mut self) -> Result<Expr, Error> {
+        let mut callee = self.primary()?;
+        loop {
+            if self.match_types(vec![LEFT_PAREN]) {
+                callee = self.finish_call(callee)?;
+            } else {
+                break;
+            }
+        }
+        Ok(callee)
+    }
+    
+    fn finish_call(&mut self, callee: Expr) -> Result<Expr, Error> {
+        let mut arguments = Vec::new();
+        if !self.check(RIGHT_PAREN) {
+            loop {
+                if arguments.len() >= 255 {
+                    self.error(self.peek(), "Can't have more than 255 arguments.");
+                }
+                arguments.push(self.expression()?);
+                if self.match_types(vec![COMMA]) {
+                    break;
+                }
+            }
+        }
+        let paren = self.consume(RIGHT_PAREN, "Expect ')' after arguments.")?;
+        Ok(Expr::Call { callee: Box::from(callee), paren, arguments })
     }
 
     fn primary(&mut self) -> Result<Expr, Error> {
@@ -352,7 +381,7 @@ impl Parser {
             return Ok(Expr::Literal { value: Object::String(string) });
         }
         if self.match_types(vec![IDENTIFIER]) {
-            return Ok(Expr::Variable { name: self.previous().clone() });
+            return Ok(Expr::Variable { name: self.previous() });
         }
 
         if self.match_types(vec![LEFT_PAREN]) {
