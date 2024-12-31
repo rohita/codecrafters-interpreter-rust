@@ -1,11 +1,11 @@
-use TokenType::*;
 use crate::error;
 use crate::error::Error;
 use crate::error::Error::ParseError;
-use crate::interpreter::Object;
 use crate::expr::Expr;
+use crate::interpreter::Object;
 use crate::stmt::Stmt;
 use crate::token::{Token, TokenType};
+use TokenType::*;
 
 #[derive(Default)]
 pub struct Parser {
@@ -36,9 +36,9 @@ impl Parser {
                 self.statement()
             }
         };
-        
+
         match try_value {
-            Ok(value) => Some(value),   
+            Ok(value) => Some(value),
             Err(_) => {
                 self.synchronize();
                 None
@@ -54,74 +54,78 @@ impl Parser {
         }
 
         self.consume(SEMICOLON, "Expect ';' after variable declaration")?;
-        Ok(Stmt::Var(name, initializer))
+        Ok(Stmt::Var { name, initializer })
     }
 
     fn statement(&mut self) -> Result<Stmt, Error> {
         if self.match_types(vec![IF]) {
-            return self.if_statement(); 
+            return self.if_statement();
         }
         if self.match_types(vec![PRINT]) {
             return self.print_statement();
         }
-        
+
         if self.match_types(vec![LEFT_BRACE]) {
             return self.block();
         }
 
         self.expression_statement()
     }
-    
+
     fn if_statement(&mut self) -> Result<Stmt, Error> {
         self.consume(LEFT_PAREN, "Expect '(' after 'if'.")?;
         let condition = self.expression()?;
         self.consume(RIGHT_PAREN, "Expect ')' after if condition.")?;
-        
+
         let then_branch = Box::new(self.statement()?);
-        
+
         // We solve the 'dangling else' problem by choosing the rule:
         // the 'else' is bound to the nearest 'if' that precedes it.
-        // Since we eagerly looks for an else before returning, the 
-        // innermost call to a nested series will claim the else clause 
+        // Since we eagerly looks for an else before returning, the
+        // innermost call to a nested series will claim the else clause
         // for itself before returning to the outer if statements.
         let mut else_branch: Option<Box<Stmt>> = None;
         if self.match_types(vec![ELSE]) {
             else_branch = Some(Box::new(self.statement()?));
         }
-        
-        Ok(Stmt::If {condition, then_branch, else_branch})
+
+        Ok(Stmt::If {
+            condition,
+            then_branch,
+            else_branch,
+        })
     }
 
     fn print_statement(&mut self) -> Result<Stmt, Error> {
-        let value = self.expression()?;
+        let expression = self.expression()?;
         self.consume(SEMICOLON, "Expect ';' after value.")?;
-        Ok(Stmt::Print(value))
+        Ok(Stmt::Print { expression })
     }
 
     fn expression_statement(&mut self) -> Result<Stmt, Error> {
-        let expr = self.expression()?;
+        let expression = self.expression()?;
         self.consume(SEMICOLON, "Expect ';' after expression.")?;
-        Ok(Stmt::Expression(expr))
+        Ok(Stmt::Expression { expression })
     }
 
     fn block(&mut self) -> Result<Stmt, Error> {
         let mut statements = Vec::new();
-        
+
         while !self.check(RIGHT_BRACE) && !self.is_at_end() {
             statements.push(self.declaration().unwrap());
         }
-        
+
         self.consume(RIGHT_BRACE, "Expect '}' after block.")?;
-        Ok(Stmt::Block(statements))
+        Ok(Stmt::Block { statements })
     }
 
     pub fn expression(&mut self) -> Result<Expr, Error> {
         self.assignment()
     }
-    
+
     pub fn assignment(&mut self) -> Result<Expr, Error> {
         let expr = self.equality()?;
-        
+
         if self.match_types(vec![EQUAL]) {
             let equals = self.previous();
             let value = self.assignment()?;
@@ -132,7 +136,7 @@ impl Parser {
                 _ => return Err(self.error(equals, "Invalid assignment target.")),
             }
         }
-        
+
         Ok(expr)
     }
 
@@ -145,7 +149,7 @@ impl Parser {
             expr = Expr::Binary {
                 operator,
                 left: Box::from(expr),
-                right: Box::from(right)
+                right: Box::from(right),
             };
         }
 
@@ -155,18 +159,13 @@ impl Parser {
     fn comparison(&mut self) -> Result<Expr, Error> {
         let mut expr = self.term()?;
 
-        while self.match_types(vec![
-            GREATER,
-            GREATER_EQUAL,
-            LESS,
-            LESS_EQUAL,
-        ]) {
+        while self.match_types(vec![GREATER, GREATER_EQUAL, LESS, LESS_EQUAL]) {
             let operator = self.previous();
             let right = self.term()?;
             expr = Expr::Binary {
                 operator,
                 left: Box::from(expr),
-                right: Box::from(right)
+                right: Box::from(right),
             };
         }
 
@@ -182,7 +181,7 @@ impl Parser {
             expr = Expr::Binary {
                 operator,
                 left: Box::from(expr),
-                right: Box::from(right)
+                right: Box::from(right),
             };
         }
 
@@ -198,7 +197,7 @@ impl Parser {
             expr = Expr::Binary {
                 operator,
                 left: Box::from(expr),
-                right: Box::from(right)
+                right: Box::from(right),
             };
         }
 
@@ -209,7 +208,10 @@ impl Parser {
         if self.match_types(vec![BANG, MINUS]) {
             let operator = self.previous();
             let right = self.unary()?;
-            return Ok(Expr::Unary {operator, right: Box::from(right)});
+            return Ok(Expr::Unary {
+                operator,
+                right: Box::from(right),
+            });
         }
 
         self.primary()
@@ -243,7 +245,7 @@ impl Parser {
             return match self.consume(RIGHT_PAREN, "Expect ')' after expression.") {
                 Ok(_) => Ok(Expr::Grouping(Box::from(expr))),
                 Err(err) => Err(err),
-            }
+            };
         }
 
         Err(self.error(self.peek(), "Expect expression."))
@@ -297,21 +299,21 @@ impl Parser {
         error::error_token(token, message.to_string());
         ParseError
     }
-    
+
     fn synchronize(&mut self) {
         self.advance();
-        
+
         while !self.is_at_end() {
             if self.previous().token_type == SEMICOLON {
                 return;
             }
-            
+
             match self.peek().token_type {
                 CLASS | FUN | VAR | FOR | IF | WHILE | PRINT | RETURN => return,
                 _ => {}
             }
-            
-            self.advance(); 
+
+            self.advance();
         }
     }
 }

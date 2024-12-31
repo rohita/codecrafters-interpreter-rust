@@ -1,10 +1,10 @@
-use std::fmt::Display;
 use crate::environment::Environment;
 use crate::error;
 use crate::error::Error;
 use crate::expr::Expr;
 use crate::stmt::Stmt;
 use crate::token::TokenType;
+use std::fmt::Display;
 
 pub struct Interpreter {
     environment: Environment,
@@ -42,43 +42,45 @@ impl Interpreter {
                 Ok(_) => continue,
                 Err(error) => {
                     error::runtime_error(error);
-                    break
-                },
+                    break;
+                }
             }
         }
     }
 
     fn execute(&mut self, stmt: Stmt) -> Result<Object, Error> {
         match stmt {
-            Stmt::Expression(expr) => self.evaluate(expr),
-            Stmt::Print(expr) => {
-                let evaluated = self.evaluate(expr)?;
+            Stmt::Expression { expression } => self.evaluate(expression),
+            Stmt::Print { expression } => {
+                let evaluated = self.evaluate(expression)?;
                 println!("{evaluated}");
                 Ok(evaluated)
-            },
-            Stmt::Var(name, initializer) => {
+            }
+            Stmt::Var { name, initializer } => {
                 let mut value = Object::Nil;
                 if let Some(intz) = initializer {
                     value = self.evaluate(intz)?;
                 }
                 self.environment.define(name.lexeme, value.clone());
                 Ok(value)
-            },
-            Stmt::Block(statements) => {
+            }
+            Stmt::Block { statements } => {
                 self.environment = Environment::new_enclosing(self.environment.clone());
 
-                let results: Result<Vec<_>, _> = statements
-                    .into_iter()
-                    .map(|s| self.execute(s))
-                    .collect();
-                
+                let results: Result<Vec<_>, _> =
+                    statements.into_iter().map(|s| self.execute(s)).collect();
+
                 self.environment = self.environment.get_enclosing();
                 match results {
                     Ok(_) => Ok(Object::Nil),
                     Err(error) => Err(error),
                 }
             }
-            Stmt::If{ condition, then_branch, else_branch } => {
+            Stmt::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
                 let if_value = self.evaluate(condition)?;
                 if self.is_truthy(if_value) {
                     self.execute(*then_branch)?;
@@ -86,7 +88,7 @@ impl Interpreter {
                     self.execute(*else_branch)?;
                 }
                 Ok(Object::Nil)
-            },
+            }
         }
     }
 
@@ -94,18 +96,27 @@ impl Interpreter {
         let return_val = match expression {
             Expr::Literal(value) => value,
             Expr::Grouping(e) => self.evaluate(*e)?,
-            Expr::Unary{operator, right} => {
+            Expr::Unary { operator, right } => {
                 let value = self.evaluate(*right)?;
                 match operator.token_type {
                     TokenType::MINUS => match value {
                         Object::Number(n) => Object::Number(-n),
-                        _ => return Err(Error::RuntimeError(operator, "Operand must be a number.".to_string())),
+                        _ => {
+                            return Err(Error::RuntimeError(
+                                operator,
+                                "Operand must be a number.".to_string(),
+                            ))
+                        }
                     },
                     TokenType::BANG => Object::Boolean(!self.is_truthy(value)),
                     _ => unreachable!(),
                 }
-            },
-            Expr::Binary {operator, left, right} => {
+            }
+            Expr::Binary {
+                operator,
+                left,
+                right,
+            } => {
                 let left = self.evaluate(*left)?;
                 let right = self.evaluate(*right)?;
 
@@ -127,40 +138,60 @@ impl Interpreter {
                         TokenType::PLUS => Object::String(left + right.as_str()),
                         TokenType::BANG_EQUAL => Object::Boolean(left != right),
                         TokenType::EQUAL_EQUAL => Object::Boolean(left == right),
-                        _ => return Err(Error::RuntimeError(operator, "Operands must be numbers.".to_string())),
+                        _ => {
+                            return Err(Error::RuntimeError(
+                                operator,
+                                "Operands must be numbers.".to_string(),
+                            ))
+                        }
                     },
                     (Object::Boolean(left), Object::Boolean(right)) => match operator.token_type {
                         TokenType::BANG_EQUAL => Object::Boolean(left != right),
                         TokenType::EQUAL_EQUAL => Object::Boolean(left == right),
-                        _ => return Err(Error::RuntimeError(operator, "Operands must be numbers.".to_string())),
+                        _ => {
+                            return Err(Error::RuntimeError(
+                                operator,
+                                "Operands must be numbers.".to_string(),
+                            ))
+                        }
                     },
                     (Object::Nil, Object::Nil) => match operator.token_type {
                         TokenType::BANG_EQUAL => Object::Boolean(false),
                         TokenType::EQUAL_EQUAL => Object::Boolean(true),
-                        _ => return Err(Error::RuntimeError(operator, "Operands must be numbers.".to_string())),
-                    }
+                        _ => {
+                            return Err(Error::RuntimeError(
+                                operator,
+                                "Operands must be numbers.".to_string(),
+                            ))
+                        }
+                    },
                     _ => match operator.token_type {
                         TokenType::BANG_EQUAL => Object::Boolean(true),
                         TokenType::EQUAL_EQUAL => Object::Boolean(false),
-                        _ => return Err(Error::RuntimeError(operator, "Operands must be numbers.".to_string())),
-                    }
+                        _ => {
+                            return Err(Error::RuntimeError(
+                                operator,
+                                "Operands must be numbers.".to_string(),
+                            ))
+                        }
+                    },
                 }
-            },
+            }
             Expr::Variable(name) => self.environment.get(name)?,
             Expr::Assign(name, expr) => {
                 let value = self.evaluate(*expr)?;
                 self.environment.assign(name, value.clone())?;
                 value
-            },
+            }
         };
         Ok(return_val)
     }
-    
+
     fn is_truthy(&self, value: Object) -> bool {
         match value {
             Object::Boolean(b) => b,
             Object::Nil => false,
-            _ => true
+            _ => true,
         }
     }
 }
