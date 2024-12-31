@@ -58,6 +58,9 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Stmt, Error> {
+        if self.match_types(vec![FOR]) {
+            return self.for_statement();
+        }
         if self.match_types(vec![IF]) {
             return self.if_statement();
         }
@@ -72,6 +75,77 @@ impl Parser {
         }
 
         self.expression_statement()
+    }
+    
+    fn for_statement(&mut self) -> Result<Stmt, Error> {
+        self.consume(LEFT_PAREN, "Expect '(' after 'for'.")?;
+        
+        // If the token following the '(' is a semicolon then the initializer 
+        // has been omitted. Otherwise, we check for a var keyword to see if 
+        // it’s a variable declaration. If neither of those matched, it must 
+        // be an expression. We parse that and wrap it in an expression statement 
+        // so that the initializer is always of type Stmt.
+        let initializer: Option<Stmt>;
+        if self.match_types(vec![SEMICOLON]) {
+            initializer = None;
+        } else if self.match_types(vec![VAR]) {
+            initializer = Some(self.var_declaration()?);
+        } else {
+            initializer = Some(self.expression_statement()?);
+        }
+        
+        // Next up is the condition. Again, we look for a semicolon 
+        // to see if the clause has been omitted. 
+        let mut condition: Option<Expr> = None;
+        if !self.check(SEMICOLON) {
+            condition = Some(self.expression()?);
+        }
+        self.consume(SEMICOLON, "Expect ';' after loop condition.")?;
+        
+        // The last clause is the increment. It’s similar to the condition 
+        // clause except this one is terminated by the closing parenthesis.
+        let mut increment: Option<Expr> = None;
+        if !self.check(RIGHT_PAREN) {
+            increment = Some(self.expression()?);
+        }
+        self.consume(RIGHT_PAREN, "Expect ')' after for clauses.")?;
+        
+        // All that remains is the body.
+        let mut body = self.statement()?;
+        
+        // We’ve parsed all the various pieces of the for loop and the resulting 
+        // AST nodes are sitting in a handful of local variables. This is where the 
+        // desugaring comes in. We take those and use them to synthesize syntax tree 
+        // nodes that express the semantics of the for loop into a while loop.
+        
+        // Working backwards, we start with the increment clause. The increment, 
+        // if there is one, executes after the body in each iteration of the loop. 
+        // We do that by replacing the body with a little block that contains the 
+        // original body followed by an expression statement that evaluates the increment.
+        if let Some(increment) = increment {
+            let increment_stmt = Stmt::Expression { expression: increment };
+            body = Stmt::Block { statements: vec![body, increment_stmt] }
+        }
+        
+        // Next, we take the condition and the body and build the loop using a 
+        // primitive while loop. If the condition is omitted, we jam in 'true' 
+        // to make an infinite loop.
+        if condition.is_none() {
+            condition = Some(Expr::Literal { value: Object::Boolean(true) });
+        }
+        body = Stmt::While { condition: condition.unwrap(), body: Box::new(body) };
+        
+        // Finally, if there is an initializer, it runs once before the entire loop. 
+        // We do that by, again, replacing the whole statement with a block that runs 
+        // the initializer and then executes the loop.
+        if let Some(initializer) = initializer {
+            body = Stmt::Block { statements: vec![initializer, body] }
+        }
+        
+        // That’s it. We now supports 'for loops' and we didn’t have to touch 
+        // the Interpreter class at all. Since we converted 'for' to a 'while',
+        // which the interpreter already knows how to visit, there is no more work to do.
+        Ok(body)
     }
 
     fn if_statement(&mut self) -> Result<Stmt, Error> {
