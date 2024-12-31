@@ -1,6 +1,10 @@
 use crate::expr::Expr;
 use crate::token::Token;
 
+/// It’s nice to have separate enums for expressions and statements. 
+/// E.g. In the field declarations if 'While' it is clear that the 
+/// condition is an expression and the body is a statement.
+#[derive(Clone)]
 pub enum Stmt {
     Expression {
         expression: Expr,
@@ -20,10 +24,13 @@ pub enum Stmt {
         then_branch: Box<Stmt>,
         else_branch: Option<Box<Stmt>>,
     },
+    While {
+        condition: Expr,
+        body: Box<Stmt>,
+    },
     /*
     Class(Class stmt);
     Function(Function stmt);
     Return(Return stmt);
-    While(While stmt);
      */
 }

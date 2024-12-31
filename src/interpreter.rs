@@ -65,6 +65,12 @@ impl Interpreter {
                     self.execute(*else_branch)?;
                 }
                 Ok(Object::Nil)
+            },
+            Stmt::While { condition, body } => {
+                while self.evaluate(condition.clone())?.is_truthy() {
+                    self.execute(*body.clone())?;
+                }
+                Ok(Object::Nil)
             }
         }
     }

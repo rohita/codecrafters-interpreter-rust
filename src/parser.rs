@@ -64,7 +64,9 @@ impl Parser {
         if self.match_types(vec![PRINT]) {
             return self.print_statement();
         }
-
+        if self.match_types(vec![WHILE]) {
+            return self.while_statement();
+        }
         if self.match_types(vec![LEFT_BRACE]) {
             return self.block();
         }
@@ -100,6 +102,14 @@ impl Parser {
         let expression = self.expression()?;
         self.consume(SEMICOLON, "Expect ';' after value.")?;
         Ok(Stmt::Print { expression })
+    }
+    
+    fn while_statement(&mut self) -> Result<Stmt, Error> {
+        self.consume(LEFT_PAREN, "Expect '(' after 'while'.")?;
+        let condition = self.expression()?;
+        self.consume(RIGHT_PAREN, "Expect ')' after condition.")?;
+        let body = self.statement()?;
+        Ok(Stmt::While {condition, body: Box::new(body)})
     }
 
     fn expression_statement(&mut self) -> Result<Stmt, Error> {
