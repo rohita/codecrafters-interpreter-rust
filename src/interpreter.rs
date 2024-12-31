@@ -76,11 +76,7 @@ impl Interpreter {
                     Err(error) => Err(error),
                 }
             }
-            Stmt::If {
-                condition,
-                then_branch,
-                else_branch,
-            } => {
+            Stmt::If { condition, then_branch, else_branch } => {
                 let if_value = self.evaluate(condition)?;
                 if self.is_truthy(if_value) {
                     self.execute(*then_branch)?;
@@ -94,8 +90,8 @@ impl Interpreter {
 
     pub fn evaluate(&mut self, expression: Expr) -> Result<Object, Error> {
         let return_val = match expression {
-            Expr::Literal(value) => value,
-            Expr::Grouping(e) => self.evaluate(*e)?,
+            Expr::Literal { value } => value,
+            Expr::Grouping { expression } => self.evaluate(*expression)?,
             Expr::Unary { operator, right } => {
                 let value = self.evaluate(*right)?;
                 match operator.token_type {
@@ -112,11 +108,7 @@ impl Interpreter {
                     _ => unreachable!(),
                 }
             }
-            Expr::Binary {
-                operator,
-                left,
-                right,
-            } => {
+            Expr::Binary { operator, left, right} => {
                 let left = self.evaluate(*left)?;
                 let right = self.evaluate(*right)?;
 
@@ -177,9 +169,9 @@ impl Interpreter {
                     },
                 }
             }
-            Expr::Variable(name) => self.environment.get(name)?,
-            Expr::Assign(name, expr) => {
-                let value = self.evaluate(*expr)?;
+            Expr::Variable { name } => self.environment.get(name)?,
+            Expr::Assign { name, value } => {
+                let value = self.evaluate(*value)?;
                 self.environment.assign(name, value.clone())?;
                 value
             }

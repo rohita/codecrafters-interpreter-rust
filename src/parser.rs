@@ -128,10 +128,10 @@ impl Parser {
 
         if self.match_types(vec![EQUAL]) {
             let equals = self.previous();
-            let value = self.assignment()?;
+            let value = Box::from(self.assignment()?);
             match expr {
-                Expr::Variable(name) => {
-                    return Ok(Expr::Assign(name, Box::from(value)));
+                Expr::Variable{name} => {
+                    return Ok(Expr::Assign { name, value });
                 }
                 _ => return Err(self.error(equals, "Invalid assignment target.")),
             }
@@ -219,31 +219,30 @@ impl Parser {
 
     fn primary(&mut self) -> Result<Expr, Error> {
         if self.match_types(vec![FALSE]) {
-            return Ok(Expr::Literal(Object::Boolean(false)));
+            return Ok(Expr::Literal { value: Object::Boolean(false) });
         }
         if self.match_types(vec![TRUE]) {
-            return Ok(Expr::Literal(Object::Boolean(true)));
+            return Ok(Expr::Literal { value: Object::Boolean(true) });
         }
         if self.match_types(vec![NIL]) {
-            return Ok(Expr::Literal(Object::Nil));
+            return Ok(Expr::Literal { value: Object::Nil });
         }
-
         if self.match_types(vec![NUMBER]) {
             let num = self.previous().literal.clone().unwrap().parse().unwrap();
-            return Ok(Expr::Literal(Object::Number(num)));
+            return Ok(Expr::Literal { value: Object::Number(num) });
         }
         if self.match_types(vec![STRING]) {
             let string = self.previous().literal.clone().unwrap();
-            return Ok(Expr::Literal(Object::String(string)));
+            return Ok(Expr::Literal { value: Object::String(string) });
         }
         if self.match_types(vec![IDENTIFIER]) {
-            return Ok(Expr::Variable(self.previous().clone()));
+            return Ok(Expr::Variable { name: self.previous().clone() });
         }
 
         if self.match_types(vec![LEFT_PAREN]) {
             let expr = self.expression()?;
             return match self.consume(RIGHT_PAREN, "Expect ')' after expression.") {
-                Ok(_) => Ok(Expr::Grouping(Box::from(expr))),
+                Ok(_) => Ok(Expr::Grouping { expression: Box::from(expr) }),
                 Err(err) => Err(err),
             };
         }
