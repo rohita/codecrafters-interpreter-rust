@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use crate::error;
-use crate::token::{Token, TokenType};
 use crate::token::TokenType::*;
+use crate::token::{Token, TokenType};
+use std::collections::HashMap;
 
 pub struct Scanner {
     source: Vec<char>,
@@ -25,9 +25,10 @@ impl Scanner {
     pub fn scan_tokens(&mut self) -> Vec<Token> {
         while !self.is_at_end() {
             self.start = self.current;
-            self.scan_token(); 
+            self.scan_token();
         }
-        self.tokens.push(Token::new(EOF, String::new(), None, self.line));
+        self.tokens
+            .push(Token::new(EOF, String::new(), None, self.line));
         self.tokens.clone()
     }
 
@@ -65,13 +66,15 @@ impl Scanner {
                 true => self.add_token(GREATER_EQUAL),
                 false => self.add_token(GREATER),
             },
-            '/' => if self.match_next('/') {
-                while self.peek() != '\n' && !self.is_at_end() {
-                    self.advance();
+            '/' => {
+                if self.match_next('/') {
+                    while self.peek() != '\n' && !self.is_at_end() {
+                        self.advance();
+                    }
+                } else {
+                    self.add_token(SLASH)
                 }
-            } else {
-                self.add_token(SLASH)
-            },
+            }
             '\n' => self.line += 1,
             ' ' | '\r' | '\t' => {}
             '"' => self.string(),
@@ -82,14 +85,14 @@ impl Scanner {
             }
         }
     }
-    
+
     fn identifier(&mut self) {
         while is_alpha_numeric(self.peek()) {
             self.advance();
         }
 
         let text: String = self.source[self.start..self.current].iter().collect();
-        let token_type: TokenType = keywoards().get(&*text).unwrap_or(&IDENTIFIER).clone();
+        let token_type: TokenType = keywords().get(&*text).unwrap_or(&IDENTIFIER).clone();
         self.add_token(token_type);
     }
 
@@ -130,7 +133,9 @@ impl Scanner {
         self.advance();
 
         // Trim the surrounding quotes.
-        let value: String = self.source[self.start+1..self.current-1].iter().collect();
+        let value: String = self.source[self.start + 1..self.current - 1]
+            .iter()
+            .collect();
         self.add_token_with_literal(STRING, Option::from(value));
     }
 
@@ -146,7 +151,8 @@ impl Scanner {
 
     fn add_token_with_literal(&mut self, token_type: TokenType, literal: Option<String>) {
         let text = self.source[self.start..self.current].iter().collect();
-        self.tokens.push(Token::new(token_type, text, literal, self.line));
+        self.tokens
+            .push(Token::new(token_type, text, literal, self.line));
     }
 
     fn match_next(&mut self, expected: char) -> bool {
@@ -180,9 +186,7 @@ impl Scanner {
 }
 
 fn is_alpha(c: char) -> bool {
-    (c >= 'a' && c <= 'z') ||
-        (c >= 'A' && c <= 'Z') ||
-        c == '_'
+    (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
 }
 
 fn is_alpha_numeric(c: char) -> bool {
@@ -193,23 +197,23 @@ fn is_digit(c: char) -> bool {
     c >= '0' && c <= '9'
 }
 
-fn keywoards() -> HashMap<&'static str, TokenType> {
+fn keywords() -> HashMap<&'static str, TokenType> {
     HashMap::from([
-        ("and",    AND),
-        ("class",  CLASS),
-        ("else",   ELSE),
-        ("false",  FALSE),
-        ("for",    FOR),
-        ("fun",    FUN),
-        ("if",     IF),
-        ("nil",    NIL),
-        ("or",     OR),
-        ("print",  PRINT),
+        ("and", AND),
+        ("class", CLASS),
+        ("else", ELSE),
+        ("false", FALSE),
+        ("for", FOR),
+        ("fun", FUN),
+        ("if", IF),
+        ("nil", NIL),
+        ("or", OR),
+        ("print", PRINT),
         ("return", RETURN),
-        ("super",  SUPER),
-        ("this",   THIS),
-        ("true",   TRUE),
-        ("var",    VAR),
-        ("while",  WHILE),
+        ("super", SUPER),
+        ("this", THIS),
+        ("true", TRUE),
+        ("var", VAR),
+        ("while", WHILE),
     ])
 }

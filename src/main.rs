@@ -1,19 +1,19 @@
-mod scanner;
-mod token;
-mod expr;
-mod parser;
-mod error;
-mod interpreter;
-mod stmt;
 mod environment;
+mod error;
+mod expr;
+mod interpreter;
+mod parser;
+mod scanner;
+mod stmt;
+mod token;
 
+use crate::interpreter::Interpreter;
+use crate::parser::Parser;
+use crate::scanner::Scanner;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process::exit;
-use crate::interpreter::Interpreter;
-use crate::parser::Parser;
-use crate::scanner::Scanner;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -75,7 +75,7 @@ fn evaluate(file_contents: String) {
         match interpreter.evaluate(expr) {
             Ok(evaluated) => println!("{evaluated}"),
             Err(error) => error::runtime_error(error),
-        } 
+        }
     }
 }
 

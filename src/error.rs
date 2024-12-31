@@ -14,12 +14,12 @@ pub fn runtime_error(error: Error) {
             unsafe {
                 HAD_RUNTIME_ERROR = true;
             }
-        },
-        _ => unreachable!()
+        }
+        _ => unreachable!(),
     }
 }
 
-pub fn error_token(token: Token, message: String ) {
+pub fn error_token(token: Token, message: String) {
     if token.token_type == TokenType::EOF {
         report(token.line, " at end".to_string(), message);
     } else {
@@ -35,15 +35,11 @@ fn report(line: usize, wh: String, message: String) {
 }
 
 pub fn had_error() -> bool {
-    unsafe {
-        HAD_ERROR
-    }
+    unsafe { HAD_ERROR }
 }
 
 pub fn had_runtime_error() -> bool {
-    unsafe {
-        HAD_RUNTIME_ERROR
-    }
+    unsafe { HAD_RUNTIME_ERROR }
 }
 
 pub enum Error {
