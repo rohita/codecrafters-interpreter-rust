@@ -6,10 +6,10 @@ pub enum Stmt {
     Print(Expr),
     Var(Token, Option<Expr>),
     Block(Vec<Stmt>),
+    If {condition: Expr, then_branch: Box<Stmt>, else_branch: Option<Box<Stmt>>},
     /*
     Class(Class stmt);
     Function(Function stmt);
-    If(If stmt);
     Return(Return stmt);
     While(While stmt);
      */

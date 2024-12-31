@@ -58,6 +58,9 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Stmt, Error> {
+        if self.match_types(vec![IF]) {
+            return self.if_statement(); 
+        }
         if self.match_types(vec![PRINT]) {
             return self.print_statement();
         }
@@ -67,6 +70,26 @@ impl Parser {
         }
 
         self.expression_statement()
+    }
+    
+    fn if_statement(&mut self) -> Result<Stmt, Error> {
+        self.consume(LEFT_PAREN, "Expect '(' after 'if'.")?;
+        let condition = self.expression()?;
+        self.consume(RIGHT_PAREN, "Expect ')' after if condition.")?;
+        
+        let then_branch = Box::new(self.statement()?);
+        
+        // We solve the 'dangling else' problem by choosing the rule:
+        // the 'else' is bound to the nearest 'if' that precedes it.
+        // Since we eagerly looks for an else before returning, the 
+        // innermost call to a nested series will claim the else clause 
+        // for itself before returning to the outer if statements.
+        let mut else_branch: Option<Box<Stmt>> = None;
+        if self.match_types(vec![ELSE]) {
+            else_branch = Some(Box::new(self.statement()?));
+        }
+        
+        Ok(Stmt::If {condition, then_branch, else_branch})
     }
 
     fn print_statement(&mut self) -> Result<Stmt, Error> {

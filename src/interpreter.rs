@@ -78,6 +78,15 @@ impl Interpreter {
                     Err(error) => Err(error),
                 }
             }
+            Stmt::If{ condition, then_branch, else_branch } => {
+                let if_value = self.evaluate(condition)?;
+                if self.is_truthy(if_value) {
+                    self.execute(*then_branch)?;
+                } else if let Some(else_branch) = else_branch {
+                    self.execute(*else_branch)?;
+                }
+                Ok(Object::Nil)
+            },
         }
     }
 
@@ -92,12 +101,7 @@ impl Interpreter {
                         Object::Number(n) => Object::Number(-n),
                         _ => return Err(Error::RuntimeError(operator, "Operand must be a number.".to_string())),
                     },
-                    TokenType::BANG => match value {
-                        Object::Boolean(b) => Object::Boolean(!b),
-                        Object::Nil => Object::Boolean(true),
-                        Object::Number(n) => Object::Boolean(n == 0.0),
-                        Object::String(s) => Object::Boolean(s.is_empty()),
-                    },
+                    TokenType::BANG => Object::Boolean(!self.is_truthy(value)),
                     _ => unreachable!(),
                 }
             },
@@ -150,5 +154,13 @@ impl Interpreter {
             },
         };
         Ok(return_val)
+    }
+    
+    fn is_truthy(&self, value: Object) -> bool {
+        match value {
+            Object::Boolean(b) => b,
+            Object::Nil => false,
+            _ => true
+        }
     }
 }
