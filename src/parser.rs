@@ -2,7 +2,7 @@ use crate::error;
 use crate::error::Error;
 use crate::error::Error::ParseError;
 use crate::expr::Expr;
-use crate::interpreter::Object;
+use crate::object::Object;
 use crate::stmt::Stmt;
 use crate::token::{Token, TokenType};
 use TokenType::*;
@@ -123,8 +123,8 @@ impl Parser {
         self.assignment()
     }
 
-    pub fn assignment(&mut self) -> Result<Expr, Error> {
-        let expr = self.equality()?;
+    fn assignment(&mut self) -> Result<Expr, Error> {
+        let expr = self.or()?;
 
         if self.match_types(vec![EQUAL]) {
             let equals = self.previous();
@@ -139,6 +139,38 @@ impl Parser {
 
         Ok(expr)
     }
+    
+    fn or(&mut self) -> Result<Expr, Error> {
+        let mut expr = self.and()?;
+        
+        while self.match_types(vec![OR]) {
+            let operator = self.previous();
+            let right = self.and()?;
+            expr = Expr::Logical {
+                left: Box::from(expr),
+                operator,
+                right: Box::from(right)
+            };
+        }
+        
+        Ok(expr)
+    }
+    
+    fn and(&mut self) -> Result<Expr, Error> {
+        let mut expr = self.equality()?;
+        
+        while self.match_types(vec![AND]) {
+            let operator = self.previous();
+            let right = self.equality()?;
+            expr = Expr::Logical {
+                left: Box::from(expr),
+                operator,
+                right: Box::from(right)
+            };
+        }
+        
+        Ok(expr)
+    }
 
     fn equality(&mut self) -> Result<Expr, Error> {
         let mut expr = self.comparison()?;
@@ -147,8 +179,8 @@ impl Parser {
             let operator = self.previous();
             let right = self.comparison()?;
             expr = Expr::Binary {
-                operator,
                 left: Box::from(expr),
+                operator,
                 right: Box::from(right),
             };
         }
@@ -163,8 +195,8 @@ impl Parser {
             let operator = self.previous();
             let right = self.term()?;
             expr = Expr::Binary {
-                operator,
                 left: Box::from(expr),
+                operator,
                 right: Box::from(right),
             };
         }
@@ -178,9 +210,9 @@ impl Parser {
         while self.match_types(vec![MINUS, PLUS]) {
             let operator = self.previous();
             let right = self.factor()?;
-            expr = Expr::Binary {
-                operator,
-                left: Box::from(expr),
+            expr = Expr::Binary { 
+                left: Box::from(expr), 
+                operator, 
                 right: Box::from(right),
             };
         }
@@ -195,8 +227,8 @@ impl Parser {
             let operator = self.previous();
             let right = self.unary()?;
             expr = Expr::Binary {
-                operator,
                 left: Box::from(expr),
+                operator,
                 right: Box::from(right),
             };
         }

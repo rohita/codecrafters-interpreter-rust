@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::interpreter::Object;
+use crate::object::Object;
 use crate::token::Token;
 use std::collections::HashMap;
 

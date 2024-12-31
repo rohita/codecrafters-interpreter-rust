@@ -2,31 +2,12 @@ use crate::environment::Environment;
 use crate::error;
 use crate::error::Error;
 use crate::expr::Expr;
+use crate::object::Object;
 use crate::stmt::Stmt;
 use crate::token::TokenType;
-use std::fmt::Display;
 
 pub struct Interpreter {
     environment: Environment,
-}
-
-#[derive(Clone, Debug)]
-pub enum Object {
-    Boolean(bool),
-    String(String),
-    Number(f64),
-    Nil,
-}
-
-impl Display for Object {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Object::Boolean(b) => f.write_fmt(format_args!("{b}")),
-            Object::Nil => f.write_str("nil"),
-            Object::Number(n) => f.write_fmt(format_args!("{n}")),
-            Object::String(s) => f.write_fmt(format_args!("{s}")),
-        }
-    }
 }
 
 impl Interpreter {
@@ -78,7 +59,7 @@ impl Interpreter {
             }
             Stmt::If { condition, then_branch, else_branch } => {
                 let if_value = self.evaluate(condition)?;
-                if self.is_truthy(if_value) {
+                if if_value.is_truthy() {
                     self.execute(*then_branch)?;
                 } else if let Some(else_branch) = else_branch {
                     self.execute(*else_branch)?;
@@ -104,11 +85,11 @@ impl Interpreter {
                             ))
                         }
                     },
-                    TokenType::BANG => Object::Boolean(!self.is_truthy(value)),
+                    TokenType::BANG => Object::Boolean(!value.is_truthy()),
                     _ => unreachable!(),
                 }
             }
-            Expr::Binary { operator, left, right} => {
+            Expr::Binary { left, operator, right} => {
                 let left = self.evaluate(*left)?;
                 let right = self.evaluate(*right)?;
 
@@ -174,16 +155,32 @@ impl Interpreter {
                 let value = self.evaluate(*value)?;
                 self.environment.assign(name, value.clone())?;
                 value
-            }
+            },
+            Expr::Logical { left, operator, right } => {
+                let left_eval = self.evaluate(*left)?;
+                
+                // We look at left value to see if we can short-circuit. 
+                // If not, and only then, do we evaluate the right operand.
+                if operator.token_type == TokenType::OR {
+                    if left_eval.is_truthy() {
+                        return Ok(left_eval);
+                    }
+                } else {
+                    if !left_eval.is_truthy() {
+                        return Ok(left_eval);
+                    }
+                }
+                
+                // Instead of returning true or false, a logic operator merely 
+                // guarantees it will return a value with appropriate truthiness.
+                // For example:
+                // print "hi" or 2; // "hi".
+                // print nil or "yes"; // "yes".
+                // On the first example, "hi" is truthy, so the 'or' short-circuits and returns that. 
+                // On the second example, 'nil is falsey, so it evaluates and returns the second operand, "yes".
+                self.evaluate(*right)?
+            },
         };
         Ok(return_val)
-    }
-
-    fn is_truthy(&self, value: Object) -> bool {
-        match value {
-            Object::Boolean(b) => b,
-            Object::Nil => false,
-            _ => true,
-        }
     }
 }

@@ -1,4 +1,4 @@
-use crate::interpreter::Object;
+use crate::object::Object;
 use crate::token::Token;
 use std::fmt::Display;
 
@@ -11,8 +11,8 @@ pub enum Expr {
         right: Box<Expr>,
     },
     Binary {
-        operator: Token,
         left: Box<Expr>,
+        operator: Token,
         right: Box<Expr>,
     },
     Grouping {
@@ -24,6 +24,11 @@ pub enum Expr {
     Assign {
         name: Token,
         value: Box<Expr>,
+    },
+    Logical {
+        left: Box<Expr>,
+        operator: Token,
+        right: Box<Expr>,
     },
     /*
     To be implemented:
@@ -46,16 +51,17 @@ impl Display for Expr {
             Expr::Unary { operator, right } => {
                 f.write_fmt(format_args!("({} {right})", operator.lexeme))
             }
-            Expr::Binary {
-                operator,
-                left,
-                right,
-            } => f.write_fmt(format_args!("({} {left} {right})", operator.lexeme)),
+            Expr::Binary { left, operator, right } => {
+                f.write_fmt(format_args!("({} {left} {right})", operator.lexeme))
+            },
             Expr::Grouping { expression } => f.write_fmt(format_args!("(group {})", expression)),
             Expr::Variable { name } => f.write_fmt(format_args!("(var {})", name.lexeme)),
             Expr::Assign { name, value } => {
                 f.write_fmt(format_args!("(= {} {})", name.lexeme, value))
-            }
+            },
+            Expr::Logical { left, operator, right } => {
+                f.write_fmt(format_args!("({} {left} {right})", operator.lexeme))
+            },
         }
     }
 }
