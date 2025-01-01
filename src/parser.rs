@@ -30,7 +30,9 @@ impl Parser {
 
     fn declaration(&mut self) -> Option<Stmt> {
         let try_value = {
-            if self.match_types(vec![VAR]) {
+            if self.match_types(vec![FUN]) {
+                self.function("function")
+            } else if self.match_types(vec![VAR]) {
                 self.var_declaration()
             } else {
                 self.statement()
@@ -44,6 +46,31 @@ impl Parser {
                 None
             }
         }
+    }
+    
+    /// This parses functions and methods (inside classes). We’ll pass in "function" or “method” 
+    /// for kind so that the error messages are specific to the kind of declaration being parsed.
+    fn function(&mut self, kind: &str) -> Result<Stmt, Error> {
+        let name = self.consume(IDENTIFIER, format!("Expect {kind} name").as_str())?;
+        self.consume(LEFT_PAREN, format!("Expect '(' after {kind} name.").as_str())?;
+        let mut parameters = Vec::new();
+        if !self.check(RIGHT_PAREN) {
+            loop {
+                if parameters.len() > 255 {
+                    self.error(self.peek(), "Can't have more than 255 parameters.");
+                }
+                parameters.push(self.consume(IDENTIFIER, "Expect parameter name.")?);
+                
+                if self.match_types(vec![COMMA])  { 
+                    break;
+                }
+            }
+        }
+        self.consume(RIGHT_PAREN, "Expect ')' after parameters.")?;
+        
+        self.consume(LEFT_BRACE, format!("Expect '{{' before {kind} body.").as_str())?;
+        let body = self.block()?;
+        Ok(Stmt::Function {name, params: parameters, body})
     }
 
     fn var_declaration(&mut self) -> Result<Stmt, Error> {
@@ -71,7 +98,8 @@ impl Parser {
             return self.while_statement();
         }
         if self.match_types(vec![LEFT_BRACE]) {
-            return self.block();
+            let statements = self.block()?;
+            return Ok(Stmt::Block { statements });
         }
 
         self.expression_statement()
@@ -192,7 +220,7 @@ impl Parser {
         Ok(Stmt::Expression { expression })
     }
 
-    fn block(&mut self) -> Result<Stmt, Error> {
+    fn block(&mut self) -> Result<Vec<Stmt>, Error> {
         let mut statements = Vec::new();
 
         while !self.check(RIGHT_BRACE) && !self.is_at_end() {
@@ -200,7 +228,7 @@ impl Parser {
         }
 
         self.consume(RIGHT_BRACE, "Expect '}' after block.")?;
-        Ok(Stmt::Block { statements })
+        Ok(statements)
     }
 
     pub fn expression(&mut self) -> Result<Expr, Error> {

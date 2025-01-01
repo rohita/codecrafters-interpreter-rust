@@ -33,9 +33,15 @@ pub enum Stmt {
         condition: Expr,
         body: Box<Stmt>,
     },
+    Function {
+        name: Token,
+        params: Vec<Token>,
+        /// We store the body as the list of statements 
+        /// contained inside the curly braces.
+        body: Vec<Stmt>,
+    }
     /*
     Class(Class stmt);
-    Function(Function stmt);
     Return(Return stmt);
      */
 }

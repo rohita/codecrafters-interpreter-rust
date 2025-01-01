@@ -2,7 +2,8 @@ use crate::environment::Environment;
 use crate::error;
 use crate::error::Error;
 use crate::expr::Expr;
-use crate::native_functions::globals;
+use crate::function::Function;
+use crate::function::globals;
 use crate::object::Object;
 use crate::stmt::Stmt;
 use crate::token::TokenType;
@@ -20,6 +21,10 @@ impl Interpreter {
             environment: globals(),
         }
     }
+    
+    pub fn new_with_env(environment: Environment) -> Interpreter {
+        Self { environment }
+    }
 
     pub fn interpret(&mut self, statements: Vec<Stmt>) {
         for statement in statements {
@@ -30,6 +35,16 @@ impl Interpreter {
                     break;
                 }
             }
+        }
+    }
+    
+    pub fn execute_block(&mut self, statements: Vec<Stmt>) -> Result<Object, Error> {
+        let results: Result<Vec<_>, _> =
+            statements.into_iter().map(|s| self.execute(s)).collect();
+
+        match results {
+            Ok(_) => Ok(Object::Nil),
+            Err(error) => Err(error),
         }
     }
 
@@ -51,15 +66,9 @@ impl Interpreter {
             }
             Stmt::Block { statements } => {
                 self.environment = Environment::new_enclosing(self.environment.clone());
-
-                let results: Result<Vec<_>, _> =
-                    statements.into_iter().map(|s| self.execute(s)).collect();
-
+                let result = self.execute_block(statements);
                 self.environment = self.environment.get_enclosing();
-                match results {
-                    Ok(_) => Ok(Object::Nil),
-                    Err(error) => Err(error),
-                }
+                result
             }
             Stmt::If { condition, then_branch, else_branch } => {
                 let if_value = self.evaluate(condition)?;
@@ -75,6 +84,16 @@ impl Interpreter {
                     self.execute(*body.clone())?;
                 }
                 Ok(Object::Nil)
+            },
+            Stmt::Function { .. } => {
+                // This is similar to how we interpret other literal expressions. We take a function 
+                // syntax node (Stmt::Function) — a compile-time representation of the function — and convert it to 
+                // its runtime representation. Here, that’s a Function::UserDefined that wraps the syntax node.
+                let func = Function::UserDefined(stmt); 
+                let name = func.name().clone();
+                let value = Object::Callable(Box::from(func));
+                self.environment.define(name, value.clone());
+                Ok(value)
             }
         }
     }
@@ -203,3 +222,4 @@ impl Interpreter {
         Ok(return_val)
     }
 }
+

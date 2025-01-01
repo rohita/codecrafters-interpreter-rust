@@ -4,7 +4,7 @@ use crate::token::Token;
 use std::collections::HashMap;
 
 /// Functions and variables occupy the same namespace.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Environment {
     values: HashMap<String, Object>,
     enclosing: Option<Box<Environment>>,
