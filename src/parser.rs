@@ -61,7 +61,7 @@ impl Parser {
                 }
                 parameters.push(self.consume(IDENTIFIER, "Expect parameter name.")?);
                 
-                if self.match_types(vec![COMMA])  { 
+                if !self.match_types(vec![COMMA])  { 
                     break;
                 }
             }
@@ -381,7 +381,7 @@ impl Parser {
                     self.error(self.peek(), "Can't have more than 255 arguments.");
                 }
                 arguments.push(self.expression()?);
-                if self.match_types(vec![COMMA]) {
+                if !self.match_types(vec![COMMA]) {
                     break;
                 }
             }
