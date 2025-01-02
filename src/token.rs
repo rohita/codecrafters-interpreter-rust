@@ -30,7 +30,7 @@ impl Display for TokenType {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,

@@ -1,3 +1,4 @@
+use crate::object::Object;
 use crate::token::{Token, TokenType};
 
 static mut HAD_ERROR: bool = false;
@@ -45,4 +46,5 @@ pub fn had_runtime_error() -> bool {
 pub enum Error {
     ParseError,
     RuntimeError(Token, String),
+    Return(Object),
 }

@@ -94,6 +94,9 @@ impl Parser {
         if self.match_types(vec![PRINT]) {
             return self.print_statement();
         }
+        if self.match_types(vec![RETURN]) {
+            return self.return_statement();
+        }
         if self.match_types(vec![WHILE]) {
             return self.while_statement();
         }
@@ -204,6 +207,16 @@ impl Parser {
         let expression = self.expression()?;
         self.consume(SEMICOLON, "Expect ';' after value.")?;
         Ok(Stmt::Print { expression })
+    }
+    
+    fn return_statement(&mut self) -> Result<Stmt, Error> {
+        let keyword = self.previous();
+        let mut value = None;
+        if !self.check(SEMICOLON) {
+            value = Some(self.expression()?);
+        }
+        self.consume(SEMICOLON, "Expect ';' after return value.")?;
+        Ok(Stmt::Return { keyword, value })
     }
     
     fn while_statement(&mut self) -> Result<Stmt, Error> {

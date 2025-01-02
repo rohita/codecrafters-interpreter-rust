@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use crate::expr::Expr;
 use crate::token::Token;
 
@@ -9,7 +10,7 @@ use crate::token::Token;
 /// for expressions and statements. E.g. In the field declarations 
 /// of 'While' it is clear that the condition is an expression 
 /// and the body is a statement.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Stmt {
     Expression {
         expression: Expr,
@@ -39,9 +40,28 @@ pub enum Stmt {
         /// We store the body as the list of statements 
         /// contained inside the curly braces.
         body: Vec<Stmt>,
-    }
+    },
+    Return {
+        /// Use token location for error reporting
+        keyword: Token,
+        value: Option<Expr>,
+    },
     /*
     Class(Class stmt);
-    Return(Return stmt);
      */
+}
+
+impl Display for Stmt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Stmt::Expression { .. } => { write!(f, "<Expression>") }, 
+            Stmt::Print { .. } => { write!(f, "<Print>") },
+            Stmt::Var { .. } => { write!(f, "<Var>") },
+            Stmt::Block { .. } => { write!(f, "<Block>") },
+            Stmt::If { .. } => { write!(f, "<If>") },
+            Stmt::While { .. } => { write!(f, "<While>") },
+            Stmt::Function { .. } => { write!(f, "<Function>") },
+            Stmt::Return { .. } => { write!(f, "<Return>") },
+        }
+    }
 }

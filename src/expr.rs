@@ -2,7 +2,7 @@ use crate::object::Object;
 use crate::token::Token;
 use std::fmt::Display;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Expr {
     Literal {
         value: Object,

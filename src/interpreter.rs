@@ -44,6 +44,7 @@ impl Interpreter {
 
         match results {
             Ok(_) => Ok(Object::Nil),
+            Err(Error::Return(value)) => Ok(value),
             Err(error) => Err(error),
         }
     }
@@ -94,7 +95,14 @@ impl Interpreter {
                 let value = Object::Callable(Box::from(func));
                 self.environment.define(name, value.clone());
                 Ok(value)
-            }
+            },
+            Stmt::Return { value, .. } => {
+                let mut return_value = Object::Nil;
+                if let Some(value) = value {
+                    return_value = self.evaluate(value)?;
+                }
+                Err(Error::Return(return_value))
+            },
         }
     }
 
@@ -121,7 +129,6 @@ impl Interpreter {
             Expr::Binary { left, operator, right} => {
                 let left = self.evaluate(*left)?;
                 let right = self.evaluate(*right)?;
-
                 match (left, right) {
                     (Object::Number(left), Object::Number(right)) => match operator.token_type {
                         TokenType::STAR => Object::Number(left * right),
