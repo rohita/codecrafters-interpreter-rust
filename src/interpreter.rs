@@ -24,8 +24,8 @@ impl Interpreter {
         }
     }
     
-    pub fn new_with_env(environment: &Rc<RefCell<Environment>>) -> Interpreter {
-        Self { environment: Rc::clone(environment) }
+    pub fn new_with_env(environment: Rc<RefCell<Environment>>) -> Interpreter {
+        Self { environment }
     }
 
     pub fn interpret(&mut self, statements: Vec<Stmt>) {
@@ -46,7 +46,6 @@ impl Interpreter {
         
         match results {
             Ok(_) => Ok(Object::Nil),
-            Err(Error::Return(value)) => Ok(value),
             Err(error) => Err(error),
         }
     }
@@ -69,9 +68,8 @@ impl Interpreter {
             }
             Stmt::Block { statements } => {
                 let block_scope = Rc::new(RefCell::new(Environment::new_enclosing(&self.environment)));
-                let mut block_interpreter = Interpreter::new_with_env(&block_scope);
-                let result = block_interpreter.execute_block(statements);
-                result
+                let mut block_interpreter = Interpreter::new_with_env(block_scope);
+                block_interpreter.execute_block(statements)
             }
             Stmt::If { condition, then_branch, else_branch } => {
                 let if_value = self.evaluate(condition)?;
@@ -92,7 +90,7 @@ impl Interpreter {
                 // This is similar to how we interpret other literal expressions. We take a function 
                 // syntax node (Stmt::Function) — a compile-time representation of the function — and convert it to 
                 // its runtime representation. Here, that’s a Function::UserDefined that wraps the syntax node.
-                let func = Function::UserDefined(stmt); 
+                let func = Function::UserDefined {declaration: stmt, closure: Rc::clone(&self.environment)}; 
                 let name = func.name().clone();
                 let value = Object::Callable(Box::from(func));
                 self.environment.borrow_mut().define(name, value.clone());
@@ -225,8 +223,7 @@ impl Interpreter {
                     args_evaluated.push(self.evaluate(argument)?);
                 }
 
-                let block_scope = Rc::new(RefCell::new(Environment::new_enclosing(&self.environment)));
-                callee_evaluated.call(block_scope, args_evaluated, paren)?
+                callee_evaluated.call(args_evaluated, paren)?
             },
         };
         Ok(return_val)

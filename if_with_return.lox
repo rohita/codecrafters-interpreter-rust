@@ -1,0 +1,11 @@
+// This program creates a function that returns another function
+// and uses it to filter a list of numbers
+fun greater(n, min) {
+    if (n < min) {
+        return false;
+    }
+    return true;
+}
+
+print greater(5, 9);
+print greater(15, 9);
