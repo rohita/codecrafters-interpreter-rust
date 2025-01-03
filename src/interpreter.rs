@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use crate::environment::Environment;
 use crate::error;
 use crate::error::Error;
@@ -9,7 +11,7 @@ use crate::stmt::Stmt;
 use crate::token::TokenType;
 
 pub struct Interpreter {
-    environment: Environment,
+    environment: Rc<RefCell<Environment>>,
 }
 
 impl Interpreter {
@@ -22,8 +24,8 @@ impl Interpreter {
         }
     }
     
-    pub fn new_with_env(environment: Environment) -> Interpreter {
-        Self { environment }
+    pub fn new_with_env(environment: &Rc<RefCell<Environment>>) -> Interpreter {
+        Self { environment: Rc::clone(environment) }
     }
 
     pub fn interpret(&mut self, statements: Vec<Stmt>) {
@@ -41,7 +43,7 @@ impl Interpreter {
     pub fn execute_block(&mut self, statements: Vec<Stmt>) -> Result<Object, Error> {
         let results: Result<Vec<_>, _> =
             statements.into_iter().map(|s| self.execute(s)).collect();
-
+        
         match results {
             Ok(_) => Ok(Object::Nil),
             Err(Error::Return(value)) => Ok(value),
@@ -62,13 +64,13 @@ impl Interpreter {
                 if let Some(intz) = initializer {
                     value = self.evaluate(intz)?;
                 }
-                self.environment.define(name.lexeme, value.clone());
+                self.environment.borrow_mut().define(name.lexeme, value.clone());
                 Ok(value)
             }
             Stmt::Block { statements } => {
-                self.environment = Environment::new_enclosing(self.environment.clone());
-                let result = self.execute_block(statements);
-                self.environment = self.environment.get_enclosing();
+                let block_scope = Rc::new(RefCell::new(Environment::new_enclosing(&self.environment)));
+                let mut block_interpreter = Interpreter::new_with_env(&block_scope);
+                let result = block_interpreter.execute_block(statements);
                 result
             }
             Stmt::If { condition, then_branch, else_branch } => {
@@ -93,7 +95,7 @@ impl Interpreter {
                 let func = Function::UserDefined(stmt); 
                 let name = func.name().clone();
                 let value = Object::Callable(Box::from(func));
-                self.environment.define(name, value.clone());
+                self.environment.borrow_mut().define(name, value.clone());
                 Ok(value)
             },
             Stmt::Return { value, .. } => {
@@ -186,10 +188,10 @@ impl Interpreter {
                     },
                 }
             }
-            Expr::Variable { name } => self.environment.get(name)?,
+            Expr::Variable { name } => self.environment.borrow().get(name)?,
             Expr::Assign { name, value } => {
                 let value = self.evaluate(*value)?;
-                self.environment.assign(name, value.clone())?;
+                self.environment.borrow_mut().assign(name, value.clone())?;
                 value
             },
             Expr::Logical { left, operator, right } => {

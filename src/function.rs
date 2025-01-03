@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::environment::Environment;
 use crate::error::Error;
@@ -51,11 +53,11 @@ impl Function {
                     // in this new function-local environment. Up until now, the current environment
                     // was the environment where the function was being called. Now, we teleport from
                     // there inside the new parameter space we’ve created for the function.
-                    let mut function_scope = Environment::new_enclosing(globals());
+                    let function_scope = Rc::new(RefCell::new(Environment::new()));
                     for (i, param) in params.iter().enumerate() {
-                        function_scope.define(param.clone().lexeme, args[i].clone());
+                        function_scope.borrow_mut().define(param.clone().lexeme, args[i].clone());
                     }
-                    let mut function_interpreter = Interpreter::new_with_env(function_scope);
+                    let mut function_interpreter = Interpreter::new_with_env(&function_scope);
                     return function_interpreter.execute_block(body.clone());
                 }
                 unreachable!()
@@ -64,8 +66,8 @@ impl Function {
     }
 }
 
-pub fn globals() -> Environment {
-    let mut env = Environment::new();
-    env.define("clock".to_string(), Object::Callable(Box::from(Function::Clock)));
+pub fn globals() -> Rc<RefCell<Environment>> {
+    let env = Rc::new(RefCell::new(Environment::new()));
+    env.borrow_mut().define("clock".to_string(), Object::Callable(Box::from(Function::Clock)));
     env
 }

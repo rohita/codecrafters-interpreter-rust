@@ -1,13 +1,15 @@
+use std::cell::RefCell;
 use crate::error::Error;
 use crate::object::Object;
 use crate::token::Token;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 /// Functions and variables occupy the same namespace.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Environment {
     values: HashMap<String, Object>,
-    enclosing: Option<Box<Environment>>,
+    enclosing: Option<Rc<RefCell<Environment>>>,
 }
 
 impl Environment {
@@ -20,10 +22,10 @@ impl Environment {
     }
 
     /// This constructor creates a new local scope nested inside the given outer one.
-    pub fn new_enclosing(enclosing: Environment) -> Environment {
+    pub fn new_enclosing(enclosing: &Rc<RefCell<Environment>>) -> Environment {
         Self {
             values: HashMap::new(),
-            enclosing: Some(Box::new(enclosing)),
+            enclosing: Some(Rc::clone(enclosing)),
         }
     }
 
@@ -34,8 +36,8 @@ impl Environment {
     }
 
     /// The key difference between assign and define is that assign is not allowed
-    /// to create a new variable. That means it’s a runtime error if the key doesn’t
-    /// already exist in the environment’s variable map.
+    /// to create a new variable. It’s a runtime error if the key doesn’t
+    /// already exist.
     pub fn assign(&mut self, name: Token, value: Object) -> Result<Object, Error> {
         let variable = name.lexeme.clone();
         if self.values.contains_key(&variable) {
@@ -44,14 +46,13 @@ impl Environment {
         }
 
         // Walk the chain to find if the key exists
-        if self.enclosing.is_some() {
-            return self.enclosing.as_mut().unwrap().assign(name.clone(), value);
+        match &self.enclosing {
+            Some(enclosing) => enclosing.borrow_mut().assign(name, value),
+            None => Err(Error::RuntimeError(
+                name,
+                format!("Undefined variable: '{}'", variable),
+            ))
         }
-
-        Err(Error::RuntimeError(
-            name,
-            format!("Undefined variable: '{}'", variable),
-        ))
     }
 
     pub fn get(&self, name: Token) -> Result<Object, Error> {
@@ -62,7 +63,7 @@ impl Environment {
 
         // Walk the chain to find if the key exists
         match &self.enclosing {
-            Some(outer) => outer.get(name),
+            Some(outer) => outer.borrow().get(name),
             None => Err(Error::RuntimeError(
                 name,
                 format!("Undefined variable: '{}'", variable),
@@ -70,10 +71,10 @@ impl Environment {
         }
     }
 
-    pub fn get_enclosing(&self) -> Environment {
-        match &self.enclosing {
-            None => panic!("No enclosing environment"),
-            Some(outer) => *outer.clone(),
-        }
-    }
+    // pub fn get_enclosing(&self) -> Environment {
+    //     match &self.enclosing {
+    //         None => panic!("No enclosing environment"),
+    //         Some(outer) => **outer,
+    //     }
+    // }
 }
