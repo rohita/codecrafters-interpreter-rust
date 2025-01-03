@@ -38,7 +38,7 @@ impl Function {
         }
     }
 
-    pub fn call(&self, args: Vec<Object>) -> Result<Object, Error> {
+    pub fn call(&self, function_scope: Rc<RefCell<Environment>>, args: Vec<Object>) -> Result<Object, Error> {
         match self {
             Function::Clock => {
                 let timestamp_f64 = SystemTime::now()
@@ -53,7 +53,6 @@ impl Function {
                     // in this new function-local environment. Up until now, the current environment
                     // was the environment where the function was being called. Now, we teleport from
                     // there inside the new parameter space we’ve created for the function.
-                    let function_scope = Rc::new(RefCell::new(Environment::new()));
                     for (i, param) in params.iter().enumerate() {
                         function_scope.borrow_mut().define(param.clone().lexeme, args[i].clone());
                     }

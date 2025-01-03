@@ -1,6 +1,9 @@
+use std::cell::RefCell;
 use crate::error::Error;
 use crate::token::Token;
 use std::fmt::Display;
+use std::rc::Rc;
+use crate::environment::Environment;
 use crate::function::Function;
 
 #[derive(Clone, Debug)]
@@ -33,7 +36,7 @@ impl Object {
         }
     }
 
-    pub fn call(&self, args: Vec<Object>, paren: Token) -> Result<Object, Error> {
+    pub fn call(&self, function_scope: Rc<RefCell<Environment>>, args: Vec<Object>, paren: Token) -> Result<Object, Error> {
         match self {
             Object::Callable(func) => {
                 if args.len() != func.arity() {
@@ -42,7 +45,7 @@ impl Object {
                         "Expected {arity} arguments but got {args_evaluated.len()}.".to_string(),
                     ));
                 }
-                func.call(args)
+                func.call(function_scope, args)
             }
             _ => Err(Error::RuntimeError(paren, "Can only call functions and classes.".to_string())),
         }

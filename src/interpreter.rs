@@ -225,7 +225,8 @@ impl Interpreter {
                     args_evaluated.push(self.evaluate(argument)?);
                 }
 
-                callee_evaluated.call(args_evaluated, paren)?
+                let block_scope = Rc::new(RefCell::new(Environment::new_enclosing(&self.environment)));
+                callee_evaluated.call(block_scope, args_evaluated, paren)?
             },
         };
         Ok(return_val)
