@@ -39,7 +39,7 @@ impl Object {
                 if args.len() != func.arity() {
                     return Err(Error::RuntimeError(
                         paren,
-                        "Expected {arity} arguments but got {args_evaluated.len()}.".to_string(),
+                        format!("Expected {} arguments but got {}.", func.arity(), args.len()),
                     ));
                 }
                 func.call(args)
