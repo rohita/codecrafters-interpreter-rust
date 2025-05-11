@@ -20,7 +20,10 @@ pub fn runtime_error(error: Error) {
     }
 }
 
-pub fn error_token(token: Token, message: String) {
+/// This reports an error at a given token. It shows the token’s location and the 
+/// token itself. This comes in handy since we use tokens throughout the interpreter 
+/// to track locations in code.
+pub fn token_error(token: Token, message: String) {
     if token.token_type == TokenType::EOF {
         report(token.line, " at end".to_string(), message);
     } else {
@@ -44,7 +47,12 @@ pub fn had_runtime_error() -> bool {
 }
 
 pub enum Error {
+    /// Used for unwinding the parser and synchronize
     ParseError,
+    
+    /// 
     RuntimeError(Token, String),
+    
+    /// 
     Return(Object),
 }

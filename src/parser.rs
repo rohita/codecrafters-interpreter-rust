@@ -9,11 +9,13 @@ use TokenType::*;
 
 /// Parsing is the second step in compiler. Like the scanner, the parser consumes a 
 /// flat input sequence, only now we’re reading tokens instead of characters, and returns
-/// an *Abstract Syntax Tree (AST)*. This AST consists of two types of nodes: `Expr` and `Stmt`. 
-/// We split expression and statement syntax trees into two separate hierarchies because there’s 
-/// no single place in the grammar that allows both an expression and a statement. Also, 
-/// it’s nice to have separate classes for expressions and statements. E.g. In the field declarations 
-/// of 'While' it is clear that the condition is an expression and the body is a statement.
+/// a corresponding *Abstract Syntax Tree (AST)* to be passed on to the interpreter. 
+/// This AST consists of two types of nodes: `Expr` and `Stmt`. We split expression and 
+/// statement syntax trees into two separate hierarchies because there’s no single place in 
+/// the grammar that allows both an expression and a statement. Also, it’s nice to have 
+/// separate classes for expressions and statements. E.g. In the field declarations of 
+/// 'While' it is clear that the condition is an expression and the body is a statement.
+/// 
 /// `while ( expression ) statement`
 /// 
 /// There is a whole pack of parsing techniques LL(k), LR(1), LALR, etc. For our interpreter, 
@@ -67,6 +69,20 @@ impl Parser {
         match try_value {
             Ok(value) => Some(value),
             Err(_) => {
+                // As soon as the parser detects an error, it enters panic mode. It knows at least 
+                // one token doesn’t make sense given its current state in the middle of some stack 
+                // of grammar productions. So before it can get back to parsing, it needs to get its 
+                // state and the sequence of forthcoming tokens aligned such that the next token does 
+                // match the rule being parsed. This process is called **synchronization**.
+                //
+                // To do that, we select some rule in the grammar that will mark the synchronization 
+                // point. The parser fixes its parsing state by jumping out of any nested productions 
+                // until it gets back to that rule. Then it "synchronizes" the token stream by discarding 
+                // tokens until it reaches one that can appear at that point in the rule. 
+                //
+                // The traditional place in the grammar to synchronize is between statements. That's
+                // where we’ll catch the `ParserError` exception. After the exception is caught, the 
+                // parser is in the right rule. All that’s left is to synchronize the tokens.
                 self.synchronize();
                 None
             }
@@ -479,14 +495,6 @@ impl Parser {
 
         Err(self.error(self.peek(), "Expect expression."))
     }
-
-    fn consume(&mut self, token_type: TokenType, message: &str) -> Result<Token, Error> {
-        if self.check(token_type) {
-            return Ok(self.advance());
-        }
-
-        Err(self.error(self.peek(), message))
-    }
     
     // ---------------------------------------------
     // Parsing infrastructure
@@ -496,7 +504,7 @@ impl Parser {
     /// If so, it consumes the token and returns true. Otherwise, it returns 
     /// false and leaves the current token alone.
     fn match_types<const N: usize>(&mut self, types: [TokenType; N]) -> bool {
-        for &token_type in types.iter() {
+        for token_type in types {
             if self.check(token_type) {
                 self.advance();
                 return true;
@@ -505,6 +513,17 @@ impl Parser {
         false
     }
 
+    /// It’s similar to match() in that it checks to see if the next token 
+    /// is of the expected type. If so, it consumes the token and everything 
+    /// is groovy. If some other token is there, then we’ve hit an error.
+    fn consume(&mut self, token_type: TokenType, message: &str) -> Result<Token, Error> {
+        if self.check(token_type) {
+            return Ok(self.advance());
+        }
+
+        Err(self.error(self.peek(), message))
+    }
+    
     /// This method returns true if the current token is of the given type. 
     /// Unlike match(), it never consumes the token, it only looks at it.
     fn check(&self, token_type: TokenType) -> bool {
@@ -537,11 +556,17 @@ impl Parser {
         self.tokens[self.current - 1].clone()
     }
 
+    /// This reports the error and returns 'ParserError'. It does not throw because 
+    /// we want to let the calling method decide whether to unwind or not. 
     fn error(&self, token: Token, message: &str) -> Error {
-        error::error_token(token, message.to_string());
+        error::token_error(token, message.to_string());
         ParseError
     }
-
+    
+    /// We want to discard tokens until we’re right at the beginning of the next statement. 
+    /// That boundary is after a semicolon. Most statements start with a keyword — for, if, 
+    /// return, var, etc. When the next token is any of those, we’re probably about to start 
+    /// a statement.
     fn synchronize(&mut self) {
         self.advance();
 
