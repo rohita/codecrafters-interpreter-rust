@@ -7,6 +7,31 @@ use crate::stmt::Stmt;
 use crate::token::{Token, TokenType};
 use TokenType::*;
 
+/// Parsing is the second step in compiler. Like the scanner, the parser consumes a 
+/// flat input sequence, only now we’re reading tokens instead of characters, and returns
+/// an Abstract Syntax Tree (AST). This AST consists of two types of nodes: Expr and Stmt. 
+/// We split expression and statement syntax trees into two separate hierarchies because there’s 
+/// no single place in the grammar that allows both an expression and a statement. Also, 
+/// it’s nice to have separate enums for expressions and statements. E.g. In the field declarations 
+/// of 'While' it is clear that the condition is an expression and the body is a statement.
+/// `while ( expression ) statement`
+/// 
+/// There is a whole pack of parsing techniques LL(k), LR(1), LALR, etc. For our interpreter, 
+/// we will use Recursive Descent. 
+/// 
+/// Recursive descent is considered a top-down parser because it starts from the top 
+/// or outermost grammar rule and works its way down into the nested subexpressions 
+/// before finally reaching the leaves of the syntax tree. This is in contrast with 
+/// bottom-up parsers like LR that start with primary expressions and compose them 
+/// into larger and larger chunks of syntax. Recursive descent is the simplest 
+/// way to build a parser. It is fast, robust, and can support sophisticated error handling.
+/// 
+/// A recursive descent parser is a literal translation of the grammar’s rules straight 
+/// into imperative code. Each rule becomes a method inside this class. Each method for 
+/// parsing a grammar rule produces a syntax tree for that rule and returns it to the caller. 
+/// When the body of the rule contains a nonterminal — a reference to another rule — we call 
+/// that other rule’s method. When a grammar rule refers to itself — directly or indirectly — 
+/// that translates to a recursive function call (that's why the descent is described as “recursive”).
 #[derive(Default)]
 pub struct Parser {
     tokens: Vec<Token>,
@@ -243,6 +268,10 @@ impl Parser {
         self.consume(RIGHT_BRACE, "Expect '}' after block.")?;
         Ok(statements)
     }
+    
+    // ---------------------------------------------
+    // Expressions
+    // ---------------------------------------------
 
     pub fn expression(&mut self) -> Result<Expr, Error> {
         self.assignment()
@@ -297,6 +326,10 @@ impl Parser {
         Ok(expr)
     }
 
+    // ----Binary operators-----------------------------
+
+    /// equal or not-equal 
+    /// equality → comparison ( ( "!=" | "==" ) comparison )* ;
     fn equality(&mut self) -> Result<Expr, Error> {
         let mut expr = self.comparison()?;
 
@@ -313,6 +346,8 @@ impl Parser {
         Ok(expr)
     }
 
+    /// less than and greater than
+    /// comparison → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
     fn comparison(&mut self) -> Result<Expr, Error> {
         let mut expr = self.term()?;
 
@@ -329,6 +364,8 @@ impl Parser {
         Ok(expr)
     }
 
+    /// addition and subtraction
+    /// term → factor ( ( "-" | "+" ) factor )* ;
     fn term(&mut self) -> Result<Expr, Error> {
         let mut expr = self.factor()?;
 
@@ -345,6 +382,8 @@ impl Parser {
         Ok(expr)
     }
 
+    /// multiplication and division
+    /// factor → unary ( ( "/" | "*" ) unary )* ;
     fn factor(&mut self) -> Result<Expr, Error> {
         let mut expr = self.unary()?;
 
@@ -361,6 +400,9 @@ impl Parser {
         Ok(expr)
     }
 
+    // ----Unary operators-----------------------------
+    
+    /// unary → ( "!" | "-" ) unary | call ;
     fn unary(&mut self) -> Result<Expr, Error> {
         if self.match_types(vec![BANG, MINUS]) {
             let operator = self.previous();
@@ -403,6 +445,7 @@ impl Parser {
         Ok(Expr::Call { callee: Box::from(callee), paren, arguments })
     }
 
+    /// primary → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
     fn primary(&mut self) -> Result<Expr, Error> {
         if self.match_types(vec![FALSE]) {
             return Ok(Expr::Literal { value: Object::Boolean(false) });
@@ -443,7 +486,14 @@ impl Parser {
 
         Err(self.error(self.peek(), message))
     }
-
+    
+    // ---------------------------------------------
+    // Parsing infrastructure
+    // ---------------------------------------------
+    
+    /// This checks to see if the current token has any of the given types. 
+    /// If so, it consumes the token and returns true. Otherwise, it returns 
+    /// false and leaves the current token alone. 
     fn match_types(&mut self, types: Vec<TokenType>) -> bool {
         for token_type in types {
             if self.check(token_type) {
@@ -453,7 +503,9 @@ impl Parser {
         }
         false
     }
-
+    
+    /// This method returns true if the current token is of the given type. 
+    /// Unlike match(), it never consumes the token, it only looks at it.
     fn check(&self, token_type: TokenType) -> bool {
         if self.is_at_end() {
             return false;
@@ -461,6 +513,7 @@ impl Parser {
         self.peek().token_type == token_type
     }
 
+    /// The advance() method consumes the current token and returns it.
     fn advance(&mut self) -> Token {
         if !self.is_at_end() {
             self.current += 1;
@@ -468,14 +521,17 @@ impl Parser {
         self.previous()
     }
 
+    /// Checks if we’ve run out of tokens to parse.
     fn is_at_end(&self) -> bool {
         self.peek().token_type == EOF
     }
 
+    /// Returns the current token we have yet to consume
     fn peek(&self) -> Token {
         self.tokens[self.current].clone()
     }
 
+    /// Returns the most recently consumed token. 
     fn previous(&mut self) -> Token {
         self.tokens[self.current - 1].clone()
     }

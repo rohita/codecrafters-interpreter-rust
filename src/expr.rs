@@ -2,6 +2,8 @@ use crate::object::Object;
 use crate::token::Token;
 use std::fmt::Display;
 
+/// Expr is the base class that all expression types inherit from.
+/// These types exist to enable the parser and interpreter to communicate.
 #[derive(Clone, Debug)]
 pub enum Expr {
     Literal {
