@@ -9,17 +9,17 @@ use TokenType::*;
 
 /// Parsing is the second step in compiler. Like the scanner, the parser consumes a 
 /// flat input sequence, only now we’re reading tokens instead of characters, and returns
-/// an Abstract Syntax Tree (AST). This AST consists of two types of nodes: Expr and Stmt. 
+/// an *Abstract Syntax Tree (AST)*. This AST consists of two types of nodes: `Expr` and `Stmt`. 
 /// We split expression and statement syntax trees into two separate hierarchies because there’s 
 /// no single place in the grammar that allows both an expression and a statement. Also, 
-/// it’s nice to have separate enums for expressions and statements. E.g. In the field declarations 
+/// it’s nice to have separate classes for expressions and statements. E.g. In the field declarations 
 /// of 'While' it is clear that the condition is an expression and the body is a statement.
 /// `while ( expression ) statement`
 /// 
 /// There is a whole pack of parsing techniques LL(k), LR(1), LALR, etc. For our interpreter, 
-/// we will use Recursive Descent. 
+/// we will use *Recursive Descent*. 
 /// 
-/// Recursive descent is considered a top-down parser because it starts from the top 
+/// Recursive descent is considered a *top-down parser* because it starts from the top 
 /// or outermost grammar rule and works its way down into the nested subexpressions 
 /// before finally reaching the leaves of the syntax tree. This is in contrast with 
 /// bottom-up parsers like LR that start with primary expressions and compose them 
@@ -29,9 +29,9 @@ use TokenType::*;
 /// A recursive descent parser is a literal translation of the grammar’s rules straight 
 /// into imperative code. Each rule becomes a method inside this class. Each method for 
 /// parsing a grammar rule produces a syntax tree for that rule and returns it to the caller. 
-/// When the body of the rule contains a nonterminal — a reference to another rule — we call 
+/// When the body of the rule contains a *nonterminal* — a reference to another rule — we call 
 /// that other rule’s method. When a grammar rule refers to itself — directly or indirectly — 
-/// that translates to a recursive function call (that's why the descent is described as “recursive”).
+/// that translates to a recursive function call (that's why it's called “recursive”).
 #[derive(Default)]
 pub struct Parser {
     tokens: Vec<Token>,
@@ -55,9 +55,9 @@ impl Parser {
 
     fn declaration(&mut self) -> Option<Stmt> {
         let try_value = {
-            if self.match_types(vec![FUN]) {
+            if self.match_types([FUN]) {
                 self.function("function")
-            } else if self.match_types(vec![VAR]) {
+            } else if self.match_types([VAR]) {
                 self.var_declaration()
             } else {
                 self.statement()
@@ -86,7 +86,7 @@ impl Parser {
                 }
                 parameters.push(self.consume(IDENTIFIER, "Expect parameter name.")?);
                 
-                if !self.match_types(vec![COMMA])  { 
+                if !self.match_types([COMMA])  { 
                     break;
                 }
             }
@@ -101,7 +101,7 @@ impl Parser {
     fn var_declaration(&mut self) -> Result<Stmt, Error> {
         let name = self.consume(IDENTIFIER, "Expect variable name")?;
         let mut initializer: Option<Expr> = None;
-        if self.match_types(vec![EQUAL]) {
+        if self.match_types([EQUAL]) {
             initializer = Some(self.expression()?);
         }
 
@@ -110,22 +110,22 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Stmt, Error> {
-        if self.match_types(vec![FOR]) {
+        if self.match_types([FOR]) {
             return self.for_statement();
         }
-        if self.match_types(vec![IF]) {
+        if self.match_types([IF]) {
             return self.if_statement();
         }
-        if self.match_types(vec![PRINT]) {
+        if self.match_types([PRINT]) {
             return self.print_statement();
         }
-        if self.match_types(vec![RETURN]) {
+        if self.match_types([RETURN]) {
             return self.return_statement();
         }
-        if self.match_types(vec![WHILE]) {
+        if self.match_types([WHILE]) {
             return self.while_statement();
         }
-        if self.match_types(vec![LEFT_BRACE]) {
+        if self.match_types([LEFT_BRACE]) {
             let statements = self.block()?;
             return Ok(Stmt::Block { statements });
         }
@@ -142,9 +142,9 @@ impl Parser {
         // be an expression. We parse that and wrap it in an expression statement 
         // so that the initializer is always of type Stmt.
         let initializer: Option<Stmt>;
-        if self.match_types(vec![SEMICOLON]) {
+        if self.match_types([SEMICOLON]) {
             initializer = None;
-        } else if self.match_types(vec![VAR]) {
+        } else if self.match_types([VAR]) {
             initializer = Some(self.var_declaration()?);
         } else {
             initializer = Some(self.expression_statement()?);
@@ -217,7 +217,7 @@ impl Parser {
         // innermost call to a nested series will claim the else clause
         // for itself before returning to the outer if statements.
         let mut else_branch: Option<Box<Stmt>> = None;
-        if self.match_types(vec![ELSE]) {
+        if self.match_types([ELSE]) {
             else_branch = Some(Box::new(self.statement()?));
         }
 
@@ -280,7 +280,7 @@ impl Parser {
     fn assignment(&mut self) -> Result<Expr, Error> {
         let expr = self.or()?;
 
-        if self.match_types(vec![EQUAL]) {
+        if self.match_types([EQUAL]) {
             let equals = self.previous();
             let value = Box::from(self.assignment()?);
             match expr {
@@ -297,7 +297,7 @@ impl Parser {
     fn or(&mut self) -> Result<Expr, Error> {
         let mut expr = self.and()?;
         
-        while self.match_types(vec![OR]) {
+        while self.match_types([OR]) {
             let operator = self.previous();
             let right = self.and()?;
             expr = Expr::Logical {
@@ -313,7 +313,7 @@ impl Parser {
     fn and(&mut self) -> Result<Expr, Error> {
         let mut expr = self.equality()?;
         
-        while self.match_types(vec![AND]) {
+        while self.match_types([AND]) {
             let operator = self.previous();
             let right = self.equality()?;
             expr = Expr::Logical {
@@ -333,7 +333,7 @@ impl Parser {
     fn equality(&mut self) -> Result<Expr, Error> {
         let mut expr = self.comparison()?;
 
-        while self.match_types(vec![BANG_EQUAL, EQUAL_EQUAL]) {
+        while self.match_types([BANG_EQUAL, EQUAL_EQUAL]) {
             let operator = self.previous();
             let right = self.comparison()?;
             expr = Expr::Binary {
@@ -351,7 +351,7 @@ impl Parser {
     fn comparison(&mut self) -> Result<Expr, Error> {
         let mut expr = self.term()?;
 
-        while self.match_types(vec![GREATER, GREATER_EQUAL, LESS, LESS_EQUAL]) {
+        while self.match_types([GREATER, GREATER_EQUAL, LESS, LESS_EQUAL]) {
             let operator = self.previous();
             let right = self.term()?;
             expr = Expr::Binary {
@@ -369,7 +369,7 @@ impl Parser {
     fn term(&mut self) -> Result<Expr, Error> {
         let mut expr = self.factor()?;
 
-        while self.match_types(vec![MINUS, PLUS]) {
+        while self.match_types([MINUS, PLUS]) {
             let operator = self.previous();
             let right = self.factor()?;
             expr = Expr::Binary { 
@@ -387,7 +387,7 @@ impl Parser {
     fn factor(&mut self) -> Result<Expr, Error> {
         let mut expr = self.unary()?;
 
-        while self.match_types(vec![SLASH, STAR]) {
+        while self.match_types([SLASH, STAR]) {
             let operator = self.previous();
             let right = self.unary()?;
             expr = Expr::Binary {
@@ -404,7 +404,7 @@ impl Parser {
     
     /// unary → ( "!" | "-" ) unary | call ;
     fn unary(&mut self) -> Result<Expr, Error> {
-        if self.match_types(vec![BANG, MINUS]) {
+        if self.match_types([BANG, MINUS]) {
             let operator = self.previous();
             let right = self.unary()?;
             return Ok(Expr::Unary {
@@ -419,7 +419,7 @@ impl Parser {
     fn call(&mut self) -> Result<Expr, Error> {
         let mut callee = self.primary()?;
         loop {
-            if self.match_types(vec![LEFT_PAREN]) {
+            if self.match_types([LEFT_PAREN]) {
                 callee = self.finish_call(callee)?;
             } else {
                 break;
@@ -436,7 +436,7 @@ impl Parser {
                     self.error(self.peek(), "Can't have more than 255 arguments.");
                 }
                 arguments.push(self.expression()?);
-                if !self.match_types(vec![COMMA]) {
+                if !self.match_types([COMMA]) {
                     break;
                 }
             }
@@ -445,30 +445,31 @@ impl Parser {
         Ok(Expr::Call { callee: Box::from(callee), paren, arguments })
     }
 
+    /// These are the "terminals"
     /// primary → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
     fn primary(&mut self) -> Result<Expr, Error> {
-        if self.match_types(vec![FALSE]) {
+        if self.match_types([FALSE]) {
             return Ok(Expr::Literal { value: Object::Boolean(false) });
         }
-        if self.match_types(vec![TRUE]) {
+        if self.match_types([TRUE]) {
             return Ok(Expr::Literal { value: Object::Boolean(true) });
         }
-        if self.match_types(vec![NIL]) {
+        if self.match_types([NIL]) {
             return Ok(Expr::Literal { value: Object::Nil });
         }
-        if self.match_types(vec![NUMBER]) {
+        if self.match_types([NUMBER]) {
             let num = self.previous().literal.clone().unwrap().parse().unwrap();
             return Ok(Expr::Literal { value: Object::Number(num) });
         }
-        if self.match_types(vec![STRING]) {
+        if self.match_types([STRING]) {
             let string = self.previous().literal.clone().unwrap();
             return Ok(Expr::Literal { value: Object::String(string) });
         }
-        if self.match_types(vec![IDENTIFIER]) {
+        if self.match_types([IDENTIFIER]) {
             return Ok(Expr::Variable { name: self.previous() });
         }
 
-        if self.match_types(vec![LEFT_PAREN]) {
+        if self.match_types([LEFT_PAREN]) {
             let expr = self.expression()?;
             return match self.consume(RIGHT_PAREN, "Expect ')' after expression.") {
                 Ok(_) => Ok(Expr::Grouping { expression: Box::from(expr) }),
@@ -493,9 +494,9 @@ impl Parser {
     
     /// This checks to see if the current token has any of the given types. 
     /// If so, it consumes the token and returns true. Otherwise, it returns 
-    /// false and leaves the current token alone. 
-    fn match_types(&mut self, types: Vec<TokenType>) -> bool {
-        for token_type in types {
+    /// false and leaves the current token alone.
+    fn match_types<const N: usize>(&mut self, types: [TokenType; N]) -> bool {
+        for &token_type in types.iter() {
             if self.check(token_type) {
                 self.advance();
                 return true;
@@ -503,7 +504,7 @@ impl Parser {
         }
         false
     }
-    
+
     /// This method returns true if the current token is of the given type. 
     /// Unlike match(), it never consumes the token, it only looks at it.
     fn check(&self, token_type: TokenType) -> bool {
