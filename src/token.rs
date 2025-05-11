@@ -14,7 +14,7 @@ pub enum TokenType {
     GREATER, GREATER_EQUAL,
     LESS, LESS_EQUAL,
 
-    // Literals.
+    // Literals
     IDENTIFIER, STRING, NUMBER,
 
     // Keywords.
@@ -33,8 +33,16 @@ impl Display for TokenType {
 #[derive(Clone, PartialEq, Debug)]
 pub struct Token {
     pub token_type: TokenType,
+    
+    /// The smallest sequences of characters is called a lexeme. 
+    /// Lexemes are the raw substrings of the source code.
     pub lexeme: String,
+    
+    /// Textual representation of a value like number or string
     pub literal: Option<String>,
+     
+    /// We track which line the token appears on.
+    /// This is useful for telling users where errors occurred.
     pub line: usize,
 }
 
