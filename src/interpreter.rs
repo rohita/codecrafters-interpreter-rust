@@ -1,15 +1,23 @@
-use std::cell::RefCell;
-use std::rc::Rc;
 use crate::environment::Environment;
 use crate::error;
 use crate::error::Error;
+use crate::error::Error::RuntimeError;
 use crate::expr::Expr;
-use crate::function::Function;
 use crate::function::globals;
+use crate::function::Function;
 use crate::object::Object;
 use crate::stmt::Stmt;
 use crate::token::TokenType;
+use std::cell::RefCell;
+use std::rc::Rc;
 
+/// Interpreter is the third step. It takes in the AST produced by the parser and
+/// recursively traverse it, building up a value which it ultimately returned.
+/// The interpreter does a **post-order traversal**, where each node evaluates
+/// its children before doing its own work.
+///
+/// The two note types - Stmt and Expr - are evaluated in separate methods. Stmt are
+/// evaluated in the `execute` method, and Expr are evaluated in the `evaluate` method.
 pub struct Interpreter {
     environment: Rc<RefCell<Environment>>,
 }
@@ -106,6 +114,9 @@ impl Interpreter {
         }
     }
 
+    /// This evaluates an Expr tree node and produce a value. For each kind of Expr — literal,
+    /// operator, etc. — we have a corresponding chunk of code that knows how to evaluate
+    /// that tree and produce a result represented by the Object enum.
     pub fn evaluate(&mut self, expression: Expr) -> Result<Object, Error> {
         let return_val = match expression {
             Expr::Literal { value } => value,
@@ -115,12 +126,7 @@ impl Interpreter {
                 match operator.token_type {
                     TokenType::MINUS => match value {
                         Object::Number(n) => Object::Number(-n),
-                        _ => {
-                            return Err(Error::RuntimeError(
-                                operator,
-                                "Operand must be a number.".to_string(),
-                            ))
-                        }
+                        _ => return Err(RuntimeError(operator, "Operand must be a number.".into()))
                     },
                     TokenType::BANG => Object::Boolean(!value.is_truthy()),
                     _ => unreachable!(),
@@ -147,42 +153,22 @@ impl Interpreter {
                         TokenType::PLUS => Object::String(left + right.as_str()),
                         TokenType::BANG_EQUAL => Object::Boolean(left != right),
                         TokenType::EQUAL_EQUAL => Object::Boolean(left == right),
-                        _ => {
-                            return Err(Error::RuntimeError(
-                                operator,
-                                "Operands must be numbers.".to_string(),
-                            ))
-                        }
+                        _ => return Err(RuntimeError(operator, "Operands must be numbers.".into()))
                     },
                     (Object::Boolean(left), Object::Boolean(right)) => match operator.token_type {
                         TokenType::BANG_EQUAL => Object::Boolean(left != right),
                         TokenType::EQUAL_EQUAL => Object::Boolean(left == right),
-                        _ => {
-                            return Err(Error::RuntimeError(
-                                operator,
-                                "Operands must be numbers.".to_string(),
-                            ))
-                        }
+                        _ => return Err(RuntimeError(operator, "Operands must be numbers.".into()))
                     },
                     (Object::Nil, Object::Nil) => match operator.token_type {
                         TokenType::BANG_EQUAL => Object::Boolean(false),
                         TokenType::EQUAL_EQUAL => Object::Boolean(true),
-                        _ => {
-                            return Err(Error::RuntimeError(
-                                operator,
-                                "Operands must be numbers.".to_string(),
-                            ))
-                        }
+                        _ => return Err(RuntimeError(operator, "Operands must be numbers.".into()))
                     },
                     _ => match operator.token_type {
                         TokenType::BANG_EQUAL => Object::Boolean(true),
                         TokenType::EQUAL_EQUAL => Object::Boolean(false),
-                        _ => {
-                            return Err(Error::RuntimeError(
-                                operator,
-                                "Operands must be numbers.".to_string(),
-                            ))
-                        }
+                        _ => return Err(RuntimeError(operator, "Operands must be numbers.".into()))
                     },
                 }
             }

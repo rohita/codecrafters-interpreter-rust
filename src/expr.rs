@@ -6,21 +6,26 @@ use std::fmt::Display;
 /// It's a one of the two node types in the Abstract Syntax Tree (AST). 
 #[derive(Clone, Debug)]
 pub enum Expr {
-    Literal {
-        value: Object,
-    },
-    Unary {
-        operator: Token,
-        right: Box<Expr>,
-    },
-    Binary {
-        left: Box<Expr>,
-        operator: Token,
-        right: Box<Expr>,
-    },
-    Grouping {
-        expression: Box<Expr>,
-    },
+    /// The leaves of an expression tree — the atomic bits of syntax 
+    /// that all other expressions are composed of — are literals. 
+    /// Literals are almost values already, but the distinction is 
+    /// important. A literal is a bit of syntax that produces a "value". 
+    /// A literal always appears somewhere in the user’s source code, 
+    /// but values are produced by computation and don’t exist anywhere 
+    /// in the code itself. Those computed values aren’t literals. A literal 
+    /// comes from the parser’s domain. Values are an interpreter concept, 
+    /// part of the runtime world.
+    Literal { value: Object },
+    
+    /// Unary expressions have a single operator followed by a subexpression
+    Unary { operator: Token, right: Box<Expr> },
+    
+    Binary { left: Box<Expr>, operator: Token, right: Box<Expr> },
+    
+    /// A Grouping node represents parentheses in an expression. It has a 
+    /// reference to an inner node for the expression contained inside the 
+    /// parentheses.
+    Grouping { expression: Box<Expr> },
     Variable {
         name: Token,
     },
