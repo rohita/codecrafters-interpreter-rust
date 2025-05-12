@@ -20,6 +20,7 @@ pub enum Expr {
     /// Unary expressions have a single operator followed by a subexpression
     Unary { operator: Token, right: Box<Expr> },
     
+    /// Binary expression have a left and right with a single operator in the middle
     Binary { left: Box<Expr>, operator: Token, right: Box<Expr> },
     
     /// A Grouping node represents parentheses in an expression. It has a 

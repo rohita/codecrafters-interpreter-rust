@@ -6,8 +6,9 @@ use crate::expr::Expr;
 use crate::function::globals;
 use crate::function::Function;
 use crate::object::Object;
+use crate::object::Object::*;
 use crate::stmt::Stmt;
-use crate::token::TokenType;
+use crate::token::TokenType::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -118,72 +119,47 @@ impl Interpreter {
     /// operator, etc. — we have a corresponding chunk of code that knows how to evaluate
     /// that tree and produce a result represented by the Object enum.
     pub fn evaluate(&mut self, expression: Expr) -> Result<Object, Error> {
-        let return_val = match expression {
-            Expr::Literal { value } => value,
-            Expr::Grouping { expression } => self.evaluate(*expression)?,
+        match expression {
+            Expr::Literal { value } => Ok(value),
+            Expr::Grouping { expression } => self.evaluate(*expression),
             Expr::Unary { operator, right } => {
                 let value = self.evaluate(*right)?;
-                match operator.token_type {
-                    TokenType::MINUS => match value {
-                        Object::Number(n) => Object::Number(-n),
-                        _ => return Err(RuntimeError(operator, "Operand must be a number.".into()))
-                    },
-                    TokenType::BANG => Object::Boolean(!value.is_truthy()),
-                    _ => unreachable!(),
+                match (&operator.token_type, value) {
+                    (MINUS, Number(n)) => Ok(Number(-n)),
+                    (BANG, value) => Ok(Boolean(!value.is_truthy())),
+                    _ => Err(RuntimeError(operator, "Operand must be a number.".into()))
                 }
             }
-            Expr::Binary { left, operator, right} => {
+            Expr::Binary { left, operator, right } => {
                 let left = self.evaluate(*left)?;
                 let right = self.evaluate(*right)?;
-                match (left, right) {
-                    (Object::Number(left), Object::Number(right)) => match operator.token_type {
-                        TokenType::STAR => Object::Number(left * right),
-                        TokenType::SLASH => Object::Number(left / right),
-                        TokenType::PLUS => Object::Number(left + right),
-                        TokenType::MINUS => Object::Number(left - right),
-                        TokenType::GREATER => Object::Boolean(left > right),
-                        TokenType::GREATER_EQUAL => Object::Boolean(left >= right),
-                        TokenType::LESS => Object::Boolean(left < right),
-                        TokenType::LESS_EQUAL => Object::Boolean(left <= right),
-                        TokenType::BANG_EQUAL => Object::Boolean(left != right),
-                        TokenType::EQUAL_EQUAL => Object::Boolean(left == right),
-                        _ => unreachable!(),
-                    },
-                    (Object::String(left), Object::String(right)) => match operator.token_type {
-                        TokenType::PLUS => Object::String(left + right.as_str()),
-                        TokenType::BANG_EQUAL => Object::Boolean(left != right),
-                        TokenType::EQUAL_EQUAL => Object::Boolean(left == right),
-                        _ => return Err(RuntimeError(operator, "Operands must be numbers.".into()))
-                    },
-                    (Object::Boolean(left), Object::Boolean(right)) => match operator.token_type {
-                        TokenType::BANG_EQUAL => Object::Boolean(left != right),
-                        TokenType::EQUAL_EQUAL => Object::Boolean(left == right),
-                        _ => return Err(RuntimeError(operator, "Operands must be numbers.".into()))
-                    },
-                    (Object::Nil, Object::Nil) => match operator.token_type {
-                        TokenType::BANG_EQUAL => Object::Boolean(false),
-                        TokenType::EQUAL_EQUAL => Object::Boolean(true),
-                        _ => return Err(RuntimeError(operator, "Operands must be numbers.".into()))
-                    },
-                    _ => match operator.token_type {
-                        TokenType::BANG_EQUAL => Object::Boolean(true),
-                        TokenType::EQUAL_EQUAL => Object::Boolean(false),
-                        _ => return Err(RuntimeError(operator, "Operands must be numbers.".into()))
-                    },
+                match (&operator.token_type, left, right) {
+                    (STAR,  Number(left), Number(right)) => Ok(Number(left * right)),
+                    (SLASH, Number(left), Number(right)) => Ok(Number(left / right)),
+                    (PLUS,  Number(left), Number(right)) => Ok(Number(left + right)),
+                    (PLUS,  String(left), String(right)) => Ok(String(left + right.as_str())),
+                    (MINUS, Number(left), Number(right)) => Ok(Number(left - right)),
+                    (GREATER, Number(left), Number(right)) => Ok(Boolean(left > right)),
+                    (GREATER_EQUAL, Number(left), Number(right)) => Ok(Boolean(left >= right)),
+                    (LESS, Number(left), Number(right)) => Ok(Boolean(left < right)),
+                    (LESS_EQUAL, Number(left), Number(right)) => Ok(Boolean(left <= right)),
+                    (BANG_EQUAL,  left, right) => Ok(Boolean(!left.is_equal(right))),
+                    (EQUAL_EQUAL, left, right) => Ok(Boolean(left.is_equal(right))),
+                    _ => Err(RuntimeError(operator, "Operands must be numbers.".into()))
                 }
             }
-            Expr::Variable { name } => self.environment.borrow().get(name)?,
+            Expr::Variable { name } => self.environment.borrow().get(name),
             Expr::Assign { name, value } => {
                 let value = self.evaluate(*value)?;
                 self.environment.borrow_mut().assign(name, value.clone())?;
-                value
+                Ok(value)
             },
             Expr::Logical { left, operator, right } => {
                 let left_eval = self.evaluate(*left)?;
                 
                 // We look at left value to see if we can short-circuit. 
                 // If not, and only then, do we evaluate the right operand.
-                if operator.token_type == TokenType::OR {
+                if operator.token_type == OR {
                     if left_eval.is_truthy() {
                         return Ok(left_eval);
                     }
@@ -200,7 +176,7 @@ impl Interpreter {
                 // print nil or "yes"; // "yes".
                 // On the first example, "hi" is truthy, so the 'or' short-circuits and returns that. 
                 // On the second example, 'nil is falsey, so it evaluates and returns the second operand, "yes".
-                self.evaluate(*right)?
+                self.evaluate(*right)
             },
             Expr::Call { callee, arguments, paren } => {
                 let callee_evaluated = self.evaluate(*callee)?;    
@@ -209,10 +185,9 @@ impl Interpreter {
                     args_evaluated.push(self.evaluate(argument)?);
                 }
 
-                callee_evaluated.call(args_evaluated, paren)?
+                callee_evaluated.call(args_evaluated, paren)
             },
-        };
-        Ok(return_val)
+        }
     }
 }
 

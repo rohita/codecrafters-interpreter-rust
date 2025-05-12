@@ -1,3 +1,4 @@
+use std::string::String;
 use crate::error::Error;
 use crate::function::Function;
 use crate::token::Token;
@@ -33,6 +34,17 @@ impl Object {
             Object::Boolean(b) => *b,
             Object::Nil => false,
             _ => true,
+        }
+    }
+
+    pub fn is_equal(&self, right: Object) -> bool {
+        match (self, right) {
+            (Object::Nil, Object::Nil) => true,
+            (Object::Nil, _) => false,
+            (Object::Number(l), Object::Number(r)) => *l == r,
+            (Object::Boolean(l), Object::Boolean(r)) => *l == r,
+            (Object::String(l), Object::String(r)) => *l == r,
+            _ => false,
         }
     }
 
