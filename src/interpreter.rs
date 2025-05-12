@@ -17,8 +17,8 @@ use std::rc::Rc;
 /// The interpreter does a **post-order traversal**, where each node evaluates
 /// its children before doing its own work.
 ///
-/// The two note types - Stmt and Expr - are evaluated in separate methods. Stmt are
-/// evaluated in the `execute` method, and Expr are evaluated in the `evaluate` method.
+/// The two note types - Stmt and Expr - are handled in separate methods. Stmt are
+/// executed in the `execute` method, and Expr are evaluated in the `evaluate` method.
 pub struct Interpreter {
     environment: Rc<RefCell<Environment>>,
 }
@@ -37,6 +37,7 @@ impl Interpreter {
         Self { environment }
     }
 
+    /// Takes in a list of statements — in other words, a program.
     pub fn interpret(&mut self, statements: Vec<Stmt>) {
         for statement in statements {
             match self.execute(statement) {
@@ -54,31 +55,38 @@ impl Interpreter {
             statements.into_iter().map(|s| self.execute(s)).collect();
         
         match results {
-            Ok(_) => Ok(Object::Nil),
+            Ok(_) => Ok(Nil),
             Err(error) => Err(error),
         }
     }
-
-    fn execute(&mut self, stmt: Stmt) -> Result<Object, Error> {
+    
+    /// This is the statement analogue to the evaluate() method we have for expressions. 
+    /// Unlike expressions, statements produce no values, so the return type of the visit 
+    /// methods is Void, not Object. 
+    fn execute(&mut self, stmt: Stmt) -> Result<(), Error> {
         match stmt {
-            Stmt::Expression { expression } => self.evaluate(expression),
+            Stmt::Expression { expression } => {
+                self.evaluate(expression)?;
+                Ok(())
+            }
             Stmt::Print { expression } => {
                 let evaluated = self.evaluate(expression)?;
                 println!("{evaluated}");
-                Ok(evaluated)
+                Ok(())
             }
             Stmt::Var { name, initializer } => {
-                let mut value = Object::Nil;
+                let mut value = Nil;
                 if let Some(intz) = initializer {
                     value = self.evaluate(intz)?;
                 }
                 self.environment.borrow_mut().define(name.lexeme, value.clone());
-                Ok(value)
+                Ok(())
             }
             Stmt::Block { statements } => {
                 let block_scope = Rc::new(RefCell::new(Environment::new_enclosing(&self.environment)));
                 let mut block_interpreter = Interpreter::new_with_env(block_scope);
-                block_interpreter.execute_block(statements)
+                block_interpreter.execute_block(statements)?;
+                Ok(())
             }
             Stmt::If { condition, then_branch, else_branch } => {
                 let if_value = self.evaluate(condition)?;
@@ -87,23 +95,23 @@ impl Interpreter {
                 } else if let Some(else_branch) = else_branch {
                     self.execute(*else_branch)?;
                 }
-                Ok(Object::Nil)
+                Ok(())
             },
             Stmt::While { condition, body } => {
                 while self.evaluate(condition.clone())?.is_truthy() {
                     self.execute(*body.clone())?;
                 }
-                Ok(Object::Nil)
+                Ok(())
             },
             Stmt::Function { .. } => {
                 // This is similar to how we interpret other literal expressions. We take a function 
                 // syntax node (Stmt::Function) — a compile-time representation of the function — and convert it to 
                 // its runtime representation. Here, that’s a Function::UserDefined that wraps the syntax node.
                 let func = Function::UserDefined {declaration: stmt, closure: Rc::clone(&self.environment)}; 
-                let name = func.name().clone();
-                let value = Object::Callable(Box::from(func));
-                self.environment.borrow_mut().define(name, value.clone());
-                Ok(value)
+                let name = func.name();
+                let value = Callable(Box::from(func));
+                self.environment.borrow_mut().define(name, value);
+                Ok(())
             },
             Stmt::Return { value, .. } => {
                 let mut return_value = Object::Nil;

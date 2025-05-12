@@ -3,14 +3,16 @@ use std::fmt::Display;
 use crate::expr::Expr;
 use crate::token::Token;
 
+/// Stmt is one of the two node types in the Abstract Syntax Tree (AST). 
+/// These nodes are higher up than expression nodes in the tree. 
 #[derive(Clone, Debug)]
 pub enum Stmt {
-    Expression {
-        expression: Expr,
-    },
-    Print {
-        expression: Expr,
-    },
+    /// An expression statement is an expression followed by a semicolon ; 
+    Expression { expression: Expr },
+
+    /// A print statement evaluates an expression and displays the result to the user. 
+    Print { expression: Expr },
+    
     Var {
         name: Token,
         initializer: Option<Expr>,

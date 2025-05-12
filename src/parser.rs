@@ -45,6 +45,9 @@ impl Parser {
         Self { tokens, current: 0 }
     }
 
+    /// This is the starting point for the grammar and represents a complete Lox script. 
+    /// It parses a series of statements, as many as it can find until it hits the end.
+    /// program → statement* EOF ;
     pub fn parse(&mut self) -> Vec<Stmt> {
         let mut stmts = Vec::new();
         while !self.is_at_end() {
@@ -57,9 +60,9 @@ impl Parser {
 
     fn declaration(&mut self) -> Option<Stmt> {
         let try_value = {
-            if self.match_types([FUN]) {
+            if self.match_token([FUN]) {
                 self.function("function")
-            } else if self.match_types([VAR]) {
+            } else if self.match_token([VAR]) {
                 self.var_declaration()
             } else {
                 self.statement()
@@ -102,7 +105,7 @@ impl Parser {
                 }
                 parameters.push(self.consume(IDENTIFIER, "Expect parameter name.")?);
                 
-                if !self.match_types([COMMA])  {
+                if !self.match_token([COMMA])  {
                     break;
                 }
             }
@@ -117,7 +120,7 @@ impl Parser {
     fn var_declaration(&mut self) -> Result<Stmt, Error> {
         let name = self.consume(IDENTIFIER, "Expect variable name")?;
         let mut initializer: Option<Expr> = None;
-        if self.match_types([EQUAL]) {
+        if self.match_token([EQUAL]) {
             initializer = Some(self.expression()?);
         }
 
@@ -125,23 +128,27 @@ impl Parser {
         Ok(Stmt::Var { name, initializer })
     }
 
+    // ---------------------------------------------
+    // Statements
+    // ---------------------------------------------
+
     fn statement(&mut self) -> Result<Stmt, Error> {
-        if self.match_types([FOR]) {
+        if self.match_token([FOR]) {
             return self.for_statement();
         }
-        if self.match_types([IF]) {
+        if self.match_token([IF]) {
             return self.if_statement();
         }
-        if self.match_types([PRINT]) {
+        if self.match_token([PRINT]) {
             return self.print_statement();
         }
-        if self.match_types([RETURN]) {
+        if self.match_token([RETURN]) {
             return self.return_statement();
         }
-        if self.match_types([WHILE]) {
+        if self.match_token([WHILE]) {
             return self.while_statement();
         }
-        if self.match_types([LEFT_BRACE]) {
+        if self.match_token([LEFT_BRACE]) {
             let statements = self.block()?;
             return Ok(Stmt::Block { statements });
         }
@@ -158,9 +165,9 @@ impl Parser {
         // be an expression. We parse that and wrap it in an expression statement 
         // so that the initializer is always of type Stmt.
         let initializer: Option<Stmt>;
-        if self.match_types([SEMICOLON]) {
+        if self.match_token([SEMICOLON]) {
             initializer = None;
-        } else if self.match_types([VAR]) {
+        } else if self.match_token([VAR]) {
             initializer = Some(self.var_declaration()?);
         } else {
             initializer = Some(self.expression_statement()?);
@@ -233,7 +240,7 @@ impl Parser {
         // innermost call to a nested series will claim the else clause
         // for itself before returning to the outer if statements.
         let mut else_branch: Option<Box<Stmt>> = None;
-        if self.match_types([ELSE]) {
+        if self.match_token([ELSE]) {
             else_branch = Some(Box::new(self.statement()?));
         }
 
@@ -244,6 +251,7 @@ impl Parser {
         })
     }
 
+    /// printStmt → "print" expression ";" ;
     fn print_statement(&mut self) -> Result<Stmt, Error> {
         let expression = self.expression()?;
         self.consume(SEMICOLON, "Expect ';' after value.")?;
@@ -268,6 +276,7 @@ impl Parser {
         Ok(Stmt::While {condition, body: Box::new(body)})
     }
 
+    /// exprStmt → expression ";" ;
     fn expression_statement(&mut self) -> Result<Stmt, Error> {
         let expression = self.expression()?;
         self.consume(SEMICOLON, "Expect ';' after expression.")?;
@@ -296,7 +305,7 @@ impl Parser {
     fn assignment(&mut self) -> Result<Expr, Error> {
         let expr = self.or()?;
 
-        if self.match_types([EQUAL]) {
+        if self.match_token([EQUAL]) {
             let equals = self.previous();
             let value = Box::from(self.assignment()?);
             match expr {
@@ -313,7 +322,7 @@ impl Parser {
     fn or(&mut self) -> Result<Expr, Error> {
         let mut expr = self.and()?;
         
-        while self.match_types([OR]) {
+        while self.match_token([OR]) {
             let operator = self.previous();
             let right = self.and()?;
             expr = Expr::Logical {
@@ -329,7 +338,7 @@ impl Parser {
     fn and(&mut self) -> Result<Expr, Error> {
         let mut expr = self.equality()?;
         
-        while self.match_types([AND]) {
+        while self.match_token([AND]) {
             let operator = self.previous();
             let right = self.equality()?;
             expr = Expr::Logical {
@@ -349,7 +358,7 @@ impl Parser {
     fn equality(&mut self) -> Result<Expr, Error> {
         let mut expr = self.comparison()?;
 
-        while self.match_types([BANG_EQUAL, EQUAL_EQUAL]) {
+        while self.match_token([BANG_EQUAL, EQUAL_EQUAL]) {
             let operator = self.previous();
             let right = self.comparison()?;
             expr = Expr::Binary {
@@ -367,7 +376,7 @@ impl Parser {
     fn comparison(&mut self) -> Result<Expr, Error> {
         let mut expr = self.term()?;
 
-        while self.match_types([GREATER, GREATER_EQUAL, LESS, LESS_EQUAL]) {
+        while self.match_token([GREATER, GREATER_EQUAL, LESS, LESS_EQUAL]) {
             let operator = self.previous();
             let right = self.term()?;
             expr = Expr::Binary {
@@ -385,7 +394,7 @@ impl Parser {
     fn term(&mut self) -> Result<Expr, Error> {
         let mut expr = self.factor()?;
 
-        while self.match_types([MINUS, PLUS]) {
+        while self.match_token([MINUS, PLUS]) {
             let operator = self.previous();
             let right = self.factor()?;
             expr = Expr::Binary { 
@@ -403,7 +412,7 @@ impl Parser {
     fn factor(&mut self) -> Result<Expr, Error> {
         let mut expr = self.unary()?;
 
-        while self.match_types([SLASH, STAR]) {
+        while self.match_token([SLASH, STAR]) {
             let operator = self.previous();
             let right = self.unary()?;
             expr = Expr::Binary {
@@ -420,7 +429,7 @@ impl Parser {
 
     /// unary → ( "!" | "-" ) unary | call ;
     fn unary(&mut self) -> Result<Expr, Error> {
-        if self.match_types([BANG, MINUS]) {
+        if self.match_token([BANG, MINUS]) {
             let operator = self.previous();
             let right = self.unary()?;
             return Ok(Expr::Unary {
@@ -435,7 +444,7 @@ impl Parser {
     fn call(&mut self) -> Result<Expr, Error> {
         let mut callee = self.primary()?;
         loop {
-            if self.match_types([LEFT_PAREN]) {
+            if self.match_token([LEFT_PAREN]) {
                 callee = self.finish_call(callee)?;
             } else {
                 break;
@@ -452,7 +461,7 @@ impl Parser {
                     self.error(self.peek(), "Can't have more than 255 arguments.");
                 }
                 arguments.push(self.expression()?);
-                if !self.match_types([COMMA]) {
+                if !self.match_token([COMMA]) {
                     break;
                 }
             }
@@ -464,28 +473,28 @@ impl Parser {
     /// These are the "terminals"
     /// primary → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
     fn primary(&mut self) -> Result<Expr, Error> {
-        if self.match_types([FALSE]) {
+        if self.match_token([FALSE]) {
             return Ok(Expr::Literal { value: Object::Boolean(false) });
         }
-        if self.match_types([TRUE]) {
+        if self.match_token([TRUE]) {
             return Ok(Expr::Literal { value: Object::Boolean(true) });
         }
-        if self.match_types([NIL]) {
+        if self.match_token([NIL]) {
             return Ok(Expr::Literal { value: Object::Nil });
         }
-        if self.match_types([NUMBER]) {
+        if self.match_token([NUMBER]) {
             let num = self.previous().literal.clone().unwrap().parse().unwrap();
             return Ok(Expr::Literal { value: Object::Number(num) });
         }
-        if self.match_types([STRING]) {
+        if self.match_token([STRING]) {
             let string = self.previous().literal.clone().unwrap();
             return Ok(Expr::Literal { value: Object::String(string) });
         }
-        if self.match_types([IDENTIFIER]) {
+        if self.match_token([IDENTIFIER]) {
             return Ok(Expr::Variable { name: self.previous() });
         }
 
-        if self.match_types([LEFT_PAREN]) {
+        if self.match_token([LEFT_PAREN]) {
             let expr = self.expression()?;
             return match self.consume(RIGHT_PAREN, "Expect ')' after expression.") {
                 Ok(_) => Ok(Expr::Grouping { expression: Box::from(expr) }),
@@ -503,7 +512,7 @@ impl Parser {
     /// This checks to see if the current token has any of the given types.
     /// If so, it consumes the token and returns true. Otherwise, it returns
     /// false and leaves the current token alone.
-    fn match_types<const N: usize>(&mut self, types: [TokenType; N]) -> bool {
+    fn match_token<const N: usize>(&mut self, types: [TokenType; N]) -> bool {
         for token_type in types {
             if self.check(token_type) {
                 self.advance();
