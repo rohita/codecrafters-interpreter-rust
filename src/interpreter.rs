@@ -61,8 +61,7 @@ impl Interpreter {
     }
     
     /// This is the statement analogue to the evaluate() method we have for expressions. 
-    /// Unlike expressions, statements produce no values, so the return type of the visit 
-    /// methods is Void, not Object. 
+    /// Unlike expressions, statements produce no values, so the return type is Void, not Object. 
     fn execute(&mut self, stmt: Stmt) -> Result<(), Error> {
         match stmt {
             Stmt::Expression { expression } => {
@@ -76,8 +75,8 @@ impl Interpreter {
             }
             Stmt::Var { name, initializer } => {
                 let mut value = Nil;
-                if let Some(intz) = initializer {
-                    value = self.evaluate(intz)?;
+                if let Some(expr) = initializer {
+                    value = self.evaluate(expr)?;
                 }
                 self.environment.borrow_mut().define(name.lexeme, value.clone());
                 Ok(())

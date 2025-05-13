@@ -13,10 +13,11 @@ pub enum Stmt {
     /// A print statement evaluates an expression and displays the result to the user. 
     Print { expression: Expr },
     
-    Var {
-        name: Token,
-        initializer: Option<Expr>,
-    },
+    /// A variable declaration statement brings a new variable into the world.
+    /// It stores the name token so we know what it’s declaring, along with the 
+    /// initializer expression. (If there isn’t an initializer, that field is null.)
+    Var { name: Token, initializer: Option<Expr> },
+    
     Block {
         statements: Vec<Stmt>,
     },

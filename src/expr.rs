@@ -27,9 +27,10 @@ pub enum Expr {
     /// reference to an inner node for the expression contained inside the 
     /// parentheses.
     Grouping { expression: Box<Expr> },
-    Variable {
-        name: Token,
-    },
+    
+    /// Simple wrapper around the token for the variable name. 
+    Variable { name: Token },
+    
     Assign {
         name: Token,
         value: Box<Expr>,

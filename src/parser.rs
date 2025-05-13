@@ -47,7 +47,7 @@ impl Parser {
 
     /// This is the starting point for the grammar and represents a complete Lox script. 
     /// It parses a series of statements, as many as it can find until it hits the end.
-    /// program → statement* EOF ;
+    /// program → declaration* EOF ;
     pub fn parse(&mut self) -> Vec<Stmt> {
         let mut stmts = Vec::new();
         while !self.is_at_end() {
@@ -58,6 +58,12 @@ impl Parser {
         stmts
     }
 
+    // ---------------------------------------------
+    // Declarations
+    // ---------------------------------------------
+
+    /// These statements declare names for variables, functions, classes
+    /// declaration → varDecl | statement ;
     fn declaration(&mut self) -> Option<Stmt> {
         let try_value = {
             if self.match_token([FUN]) {
@@ -84,8 +90,9 @@ impl Parser {
                 // tokens until it reaches one that can appear at that point in the rule.
                 //
                 // The traditional place in the grammar to synchronize is between statements. That's
-                // where we’ll catch the `ParserError` exception. After the exception is caught, the
-                // parser is in the right rule. All that’s left is to synchronize the tokens.
+                // here. This declaration() method is the method we call repeatedly when parsing a 
+                // series of statements in a block or a script, so it’s the right place to synchronize 
+                // when the parser goes into panic mode. 
                 self.synchronize();
                 None
             }
@@ -117,6 +124,8 @@ impl Parser {
         Ok(Stmt::Function {name, params: parameters, body})
     }
 
+    /// Parses variable declarations 
+    /// varDecl → "var" IDENTIFIER ( "=" expression )? ";" ;
     fn var_declaration(&mut self) -> Result<Stmt, Error> {
         let name = self.consume(IDENTIFIER, "Expect variable name")?;
         let mut initializer: Option<Expr> = None;

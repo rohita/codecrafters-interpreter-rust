@@ -8,7 +8,7 @@ use std::fmt::Display;
 pub enum Object {
     Boolean(bool),
     String(String),
-    Number(f64),
+    Number(f64),   // Lox uses double-precision numbers even for integer values.
     Nil,
     Callable(Box<Function>),
 }
@@ -18,7 +18,7 @@ impl Display for Object {
         match self {
             Object::Boolean(b) => f.write_fmt(format_args!("{b}")),
             Object::Nil => f.write_str("nil"),
-            Object::Number(n) => f.write_fmt(format_args!("{n}")),
+            Object::Number(n) => f.write_fmt(format_args!("{n}")), // print integer without decimal point
             Object::String(s) => f.write_fmt(format_args!("{s}")),
             Object::Callable(func) => f.write_fmt(format_args!("<fn {}>", func.name())),
         }

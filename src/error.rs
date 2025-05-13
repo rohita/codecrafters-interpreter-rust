@@ -8,10 +8,10 @@ pub fn error(line: usize, message: String) {
     report(line, "".to_string(), message);
 }
 
-/// If a runtime error is thrown while evaluating the expression, interpret() 
+/// If a runtime error is thrown while evaluating the expression, interpret()
 /// catches it. This lets us report the error to the user and then gracefully continue.
-/// We use the token associated with the RuntimeError to tell the user what 
-/// line of code was executing when the error occurred. 
+/// We use the token associated with the RuntimeError to tell the user what
+/// line of code was executing when the error occurred.
 pub fn runtime_error(error: Error) {
     match error {
         Error::RuntimeError(token, message) => {
@@ -55,9 +55,9 @@ pub enum Error {
     /// These are detected and reported before any code is executed.
     ParseError,
 
-    /// Runtime errors are failures that the language semantics demand we detect 
-    /// and report while the program is running. These are used by the interpreter. 
-    /// This tracks the token that identifies where in the user’s code the runtime 
+    /// Runtime errors are failures that the language semantics demand we detect
+    /// and report while the program is running. These are used by the interpreter.
+    /// This tracks the token that identifies where in the user’s code the runtime
     /// error came from. As with parsing errors, this helps the user know where to fix their code.
     RuntimeError(Token, String),
 
