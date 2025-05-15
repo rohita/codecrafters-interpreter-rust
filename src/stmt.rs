@@ -18,9 +18,9 @@ pub enum Stmt {
     /// initializer expression. (If there isn’t an initializer, that field is null.)
     Var { name: Token, initializer: Option<Expr> },
     
-    Block {
-        statements: Vec<Stmt>,
-    },
+    /// Contains the list of statements that are inside the block. 
+    Block { statements: Vec<Stmt> },
+    
     If {
         condition: Expr,
         then_branch: Box<Stmt>,

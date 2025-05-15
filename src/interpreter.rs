@@ -59,9 +59,9 @@ impl Interpreter {
             Err(error) => Err(error),
         }
     }
-    
-    /// This is the statement analogue to the evaluate() method we have for expressions. 
-    /// Unlike expressions, statements produce no values, so the return type is Void, not Object. 
+
+    /// This is the statement analogue to the evaluate() method we have for expressions.
+    /// Unlike expressions, statements produce no values, so the return type is Void, not Object.
     fn execute(&mut self, stmt: Stmt) -> Result<(), Error> {
         match stmt {
             Stmt::Expression { expression } => {
@@ -159,7 +159,7 @@ impl Interpreter {
             Expr::Assign { name, value } => {
                 let value = self.evaluate(*value)?;
                 self.environment.borrow_mut().assign(name, value.clone())?;
-                Ok(value)
+                Ok(value) // Assignment can be nested inside other expressions. So needs a value.
             },
             Expr::Logical { left, operator, right } => {
                 let left_eval = self.evaluate(*left)?;

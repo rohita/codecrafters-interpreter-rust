@@ -31,10 +31,12 @@ pub enum Expr {
     /// Simple wrapper around the token for the variable name. 
     Variable { name: Token },
     
-    Assign {
-        name: Token,
-        value: Box<Expr>,
-    },
+    /// Token for the variable being assigned to, and an expression for the new value. 
+    /// The classic terms for these two constructs are l-value and r-value. An l-value 
+    /// “evaluates” to a storage location that we assign into. That’s why this has a 
+    /// Token for the left-hand side, not an Expr. 
+    Assign { name: Token, value: Box<Expr> },
+    
     Logical {
         left: Box<Expr>,
         operator: Token,

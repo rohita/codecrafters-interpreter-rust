@@ -292,6 +292,8 @@ impl Parser {
         Ok(Stmt::Expression { expression })
     }
 
+    /// A block is a series of statements or declarations surrounded by curly braces.
+    /// block → "{" declaration* "}" ;
     fn block(&mut self) -> Result<Vec<Stmt>, Error> {
         let mut statements = Vec::new();
 
@@ -307,12 +309,15 @@ impl Parser {
     // Expressions
     // ---------------------------------------------
 
+    /// expression → assignment ;
     pub fn expression(&mut self) -> Result<Expr, Error> {
         self.assignment()
     }
 
+    /// Assigns value to a variable
+    /// assignment → IDENTIFIER "=" assignment | equality ;
     fn assignment(&mut self) -> Result<Expr, Error> {
-        let expr = self.or()?;
+        let expr = self.or()?; // Left-hand side, which can be any expression of higher precedence. 
 
         if self.match_token([EQUAL]) {
             let equals = self.previous();

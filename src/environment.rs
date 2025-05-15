@@ -11,6 +11,10 @@ use std::rc::Rc;
 /// manage it right into Interpreter, but since it forms a nicely delineated concept, 
 /// we’ll pull it out into its own class.
 /// 
+/// A scope defines a region where a name maps to a certain entity. Scope and environments 
+/// are close cousins. The former is the theoretical concept, and the latter is the machinery 
+/// that implements it. Scope is controlled by curly-braced blocks ("block scope").
+/// 
 /// Functions and variables occupy the same namespace.
 #[derive(Debug)]
 pub struct Environment {
@@ -21,7 +25,7 @@ pub struct Environment {
     /// all of those tokens refer to the same map key.
     values: HashMap<String, Object>,
     
-    ///
+    /// This is the parent environment (the outer scope).
     enclosing: Option<Rc<RefCell<Environment>>>,
 }
 
@@ -52,11 +56,11 @@ impl Environment {
     /// The key difference between assign and define is that assign is not allowed
     /// to create a new variable. It’s a runtime error if the key doesn’t
     /// already exist.
-    pub fn assign(&mut self, name: Token, value: Object) -> Result<Object, Error> {
+    pub fn assign(&mut self, name: Token, value: Object) -> Result<(), Error> {
         let variable = name.lexeme.clone();
         if self.values.contains_key(&variable) {
-            self.values.insert(variable, value.clone());
-            return Ok(value);
+            self.values.insert(variable, value);
+            return Ok(());
         }
 
         // Walk the chain to find if the key exists
