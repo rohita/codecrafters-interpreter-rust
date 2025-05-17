@@ -5,6 +5,7 @@ use crate::environment::Environment;
 use crate::error::Error;
 use crate::interpreter::Interpreter;
 use crate::object::Object;
+use crate::object::Object::Nil;
 use crate::stmt::Stmt;
 
 #[derive(Clone, Debug)]
@@ -63,7 +64,8 @@ impl Function {
                     let mut function_interpreter = Interpreter::new_with_env(scope);
                     return match function_interpreter.execute_block(body.clone()) {
                         Err(Error::Return(value)) => Ok(value),
-                        r => r,
+                        Err(r) => Err(r),
+                        _ => Ok(Nil)
                     }
                 }
                 unreachable!()

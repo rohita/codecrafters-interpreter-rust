@@ -165,9 +165,17 @@ impl Parser {
         self.expression_statement()
     }
     
+    /// forStmt → "for" "(" ( varDecl | exprStmt | ";" )
+    ///           expression? ";"
+    ///           expression? ")" statement ;
     fn for_statement(&mut self) -> Result<Stmt, Error> {
         self.consume(LEFT_PAREN, "Expect '(' after 'for'.")?;
         
+        // The first clause is the initializer. It is executed exactly once, 
+        // before anything else. It’s usually an expression, but for convenience, 
+        // we also allow a variable declaration. The variable is scoped to the 
+        // rest of the for loop — the other two clauses and the body.
+        //
         // If the token following the '(' is a semicolon then the initializer 
         // has been omitted. Otherwise, we check for a var keyword to see if 
         // it’s a variable declaration. If neither of those matched, it must 
@@ -203,8 +211,8 @@ impl Parser {
         
         // We’ve parsed all the various pieces of the for loop and the resulting 
         // AST nodes are sitting in a handful of local variables. This is where the 
-        // desugaring comes in. We take those and use them to synthesize syntax tree 
-        // nodes that express the semantics of the for loop into a while loop.
+        // de-sugaring comes in. Instead of a 'for' node, we synthesize AST
+        // node that express the semantics of the for loop into a while loop.
         
         // Working backwards, we start with the increment clause. The increment, 
         // if there is one, executes after the body in each iteration of the loop. 
@@ -232,10 +240,11 @@ impl Parser {
         
         // That’s it. We now supports 'for loops' and we didn’t have to touch 
         // the Interpreter class at all. Since we converted 'for' to a 'while',
-        // which the interpreter already knows how to visit, there is no more work to do.
+        // which the interpreter already knows how to execute, there is no more work to do.
         Ok(body)
     }
 
+    /// ifStmt → "if" "(" expression ")" statement ( "else" statement )? ;
     fn if_statement(&mut self) -> Result<Stmt, Error> {
         self.consume(LEFT_PAREN, "Expect '(' after 'if'.")?;
         let condition = self.expression()?;
@@ -277,6 +286,7 @@ impl Parser {
         Ok(Stmt::Return { keyword, value })
     }
     
+    /// whileStmt → "while" "(" expression ")" statement ;
     fn while_statement(&mut self) -> Result<Stmt, Error> {
         self.consume(LEFT_PAREN, "Expect '(' after 'while'.")?;
         let condition = self.expression()?;
@@ -315,7 +325,7 @@ impl Parser {
     }
 
     /// Assigns value to a variable
-    /// assignment → IDENTIFIER "=" assignment | equality ;
+    /// assignment → IDENTIFIER "=" assignment | logic_or ;
     fn assignment(&mut self) -> Result<Expr, Error> {
         let expr = self.or()?; // Left-hand side, which can be any expression of higher precedence. 
 
@@ -332,7 +342,10 @@ impl Parser {
 
         Ok(expr)
     }
+
+    //----------Binary operators-----------------------------
     
+    /// logic_or → logic_and ( "or" logic_and )* ;
     fn or(&mut self) -> Result<Expr, Error> {
         let mut expr = self.and()?;
         
@@ -349,6 +362,7 @@ impl Parser {
         Ok(expr)
     }
     
+    /// logic_and → equality ( "and" equality )* ;
     fn and(&mut self) -> Result<Expr, Error> {
         let mut expr = self.equality()?;
         
@@ -364,9 +378,7 @@ impl Parser {
         
         Ok(expr)
     }
-
-    // ----Binary operators-----------------------------
-
+    
     /// equal or not-equal
     /// equality → comparison ( ( "!=" | "==" ) comparison )* ;
     fn equality(&mut self) -> Result<Expr, Error> {

@@ -50,14 +50,11 @@ impl Interpreter {
         }
     }
     
-    pub fn execute_block(&mut self, statements: Vec<Stmt>) -> Result<Object, Error> {
-        let results: Result<Vec<_>, _> =
-            statements.into_iter().map(|s| self.execute(s)).collect();
-        
-        match results {
-            Ok(_) => Ok(Nil),
-            Err(error) => Err(error),
+    pub fn execute_block(&mut self, statements: Vec<Stmt>) -> Result<(), Error> {
+        for statement in statements {
+            self.execute(statement)?;
         }
+        Ok(())
     }
 
     /// This is the statement analogue to the evaluate() method we have for expressions.
@@ -176,13 +173,13 @@ impl Interpreter {
                     }
                 }
                 
-                // Instead of returning true or false, a logic operator merely 
-                // guarantees it will return a value with appropriate truthiness.
+                // Instead of returning `true` or `false`, a logic operator returns 
+                // a value with appropriate "truthiness".
                 // For example:
                 // print "hi" or 2; // "hi".
                 // print nil or "yes"; // "yes".
-                // On the first example, "hi" is truthy, so the 'or' short-circuits and returns that. 
-                // On the second example, 'nil is falsey, so it evaluates and returns the second operand, "yes".
+                // On the first example, "hi" is truthy, so the 'or' short-circuits and returns "hi". 
+                // On the second example, nil is falsey, so it returns the second operand, "yes".
                 self.evaluate(*right)
             },
             Expr::Call { callee, arguments, paren } => {

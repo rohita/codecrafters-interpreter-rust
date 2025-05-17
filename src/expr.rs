@@ -37,11 +37,13 @@ pub enum Expr {
     /// Token for the left-hand side, not an Expr. 
     Assign { name: Token, value: Box<Expr> },
     
-    Logical {
-        left: Box<Expr>,
-        operator: Token,
-        right: Box<Expr>,
-    },
+    /// Represents OR and AND. We could reuse the existing Expr.Binary for these two 
+    /// since they have the same fields. But then we would have to check to see if the 
+    /// operator is one of the logical operators and use a different code path. It’s 
+    /// cleaner to define a new class for these operators so that they get their evaluate 
+    /// method.
+    Logical { left: Box<Expr>, operator: Token, right: Box<Expr> },
+    
     Call {
         callee: Box<Expr>,
         arguments: Vec<Expr>,
