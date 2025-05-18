@@ -61,6 +61,6 @@ pub enum Error {
     /// error came from. As with parsing errors, this helps the user know where to fix their code.
     RuntimeError(Token, String),
 
-    ///
+    /// Wrap the return value of a function
     Return(Object),
 }

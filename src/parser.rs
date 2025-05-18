@@ -63,7 +63,7 @@ impl Parser {
     // ---------------------------------------------
 
     /// These statements declare names for variables, functions, classes
-    /// declaration → varDecl | statement ;
+    /// declaration → funDecl | varDecl | statement ;
     fn declaration(&mut self) -> Option<Stmt> {
         let try_value = {
             if self.match_token([FUN]) {
@@ -101,9 +101,12 @@ impl Parser {
     
     /// This parses functions and methods (inside classes). We’ll pass in "function" or “method” 
     /// for kind so that the error messages are specific to the kind of declaration being parsed.
+    /// function → IDENTIFIER "(" parameters? ")" block ;
     fn function(&mut self, kind: &str) -> Result<Stmt, Error> {
         let name = self.consume(IDENTIFIER, format!("Expect {kind} name").as_str())?;
         self.consume(LEFT_PAREN, format!("Expect '(' after {kind} name.").as_str())?;
+
+        // parameters → IDENTIFIER ( "," IDENTIFIER )* ;
         let mut parameters = Vec::new();
         if !self.check(RIGHT_PAREN) {
             loop {
@@ -164,16 +167,16 @@ impl Parser {
 
         self.expression_statement()
     }
-    
+
     /// forStmt → "for" "(" ( varDecl | exprStmt | ";" )
     ///           expression? ";"
     ///           expression? ")" statement ;
     fn for_statement(&mut self) -> Result<Stmt, Error> {
         self.consume(LEFT_PAREN, "Expect '(' after 'for'.")?;
-        
-        // The first clause is the initializer. It is executed exactly once, 
-        // before anything else. It’s usually an expression, but for convenience, 
-        // we also allow a variable declaration. The variable is scoped to the 
+
+        // The first clause is the initializer. It is executed exactly once,
+        // before anything else. It’s usually an expression, but for convenience,
+        // we also allow a variable declaration. The variable is scoped to the
         // rest of the for loop — the other two clauses and the body.
         //
         // If the token following the '(' is a semicolon then the initializer 
@@ -213,7 +216,7 @@ impl Parser {
         // AST nodes are sitting in a handful of local variables. This is where the 
         // de-sugaring comes in. Instead of a 'for' node, we synthesize AST
         // node that express the semantics of the for loop into a while loop.
-        
+
         // Working backwards, we start with the increment clause. The increment, 
         // if there is one, executes after the body in each iteration of the loop. 
         // We do that by replacing the body with a little block that contains the 
@@ -276,6 +279,7 @@ impl Parser {
         Ok(Stmt::Print { expression })
     }
     
+    /// returnStmt → "return" expression? ";" ;
     fn return_statement(&mut self) -> Result<Stmt, Error> {
         let keyword = self.previous();
         let mut value = None;
@@ -285,7 +289,7 @@ impl Parser {
         self.consume(SEMICOLON, "Expect ';' after return value.")?;
         Ok(Stmt::Return { keyword, value })
     }
-    
+
     /// whileStmt → "while" "(" expression ")" statement ;
     fn while_statement(&mut self) -> Result<Stmt, Error> {
         self.consume(LEFT_PAREN, "Expect '(' after 'while'.")?;
@@ -344,7 +348,7 @@ impl Parser {
     }
 
     //----------Binary operators-----------------------------
-    
+
     /// logic_or → logic_and ( "or" logic_and )* ;
     fn or(&mut self) -> Result<Expr, Error> {
         let mut expr = self.and()?;
@@ -361,7 +365,7 @@ impl Parser {
         
         Ok(expr)
     }
-    
+
     /// logic_and → equality ( "and" equality )* ;
     fn and(&mut self) -> Result<Expr, Error> {
         let mut expr = self.equality()?;
@@ -378,7 +382,7 @@ impl Parser {
         
         Ok(expr)
     }
-    
+
     /// equal or not-equal
     /// equality → comparison ( ( "!=" | "==" ) comparison )* ;
     fn equality(&mut self) -> Result<Expr, Error> {
@@ -467,6 +471,7 @@ impl Parser {
         self.call()
     }
     
+    /// call → primary ( "(" arguments? ")" )* ;
     fn call(&mut self) -> Result<Expr, Error> {
         let mut callee = self.primary()?;
         loop {
@@ -479,6 +484,7 @@ impl Parser {
         Ok(callee)
     }
     
+    /// arguments → expression ( "," expression )* ;
     fn finish_call(&mut self, callee: Expr) -> Result<Expr, Error> {
         let mut arguments = Vec::new();
         if !self.check(RIGHT_PAREN) {

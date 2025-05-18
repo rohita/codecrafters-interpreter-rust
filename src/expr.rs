@@ -44,13 +44,11 @@ pub enum Expr {
     /// method.
     Logical { left: Box<Expr>, operator: Token, right: Box<Expr> },
     
-    Call {
-        callee: Box<Expr>,
-        arguments: Vec<Expr>,
-        /// closing parenthesis location is used to
-        /// report a runtime error caused by a function call
-        paren: Token,
-    },
+    /// This stores the callee expression and a list of expressions for the arguments. 
+    /// It also stores the token for the closing parenthesis. We’ll use that token’s 
+    /// location when we report a runtime error caused by a function call.
+    Call { callee: Box<Expr>, arguments: Vec<Expr>, paren: Token },
+    
     /*
     To be implemented:
     GetExpr(Get expr);

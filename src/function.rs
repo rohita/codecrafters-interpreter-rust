@@ -12,8 +12,14 @@ use crate::stmt::Stmt;
 pub enum Function {
     Clock,
     UserDefined {
-        declaration: Stmt,
-        closure: Rc<RefCell<Environment>>,
+        /// Stmt::Function
+        declaration: Stmt, 
+        
+        /// This holds surrounding variables where the function is declared.
+        /// This is the environment that is active when the function is declared 
+        /// not when it’s called. It represents the lexical scope surrounding the 
+        /// function declaration.
+        closure: Rc<RefCell<Environment>>, 
     },
 }
 
@@ -65,6 +71,8 @@ impl Function {
                     return match function_interpreter.execute_block(body.clone()) {
                         Err(Error::Return(value)) => Ok(value),
                         Err(r) => Err(r),
+                        // Every Lox function must return something, even if it contains 
+                        // no return statements at all. We use nil for this.
                         _ => Ok(Nil)
                     }
                 }

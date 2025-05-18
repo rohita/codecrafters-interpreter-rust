@@ -27,8 +27,8 @@ impl Display for Object {
 
 impl Object {
     /// All types are partitioned into two sets, one of which are defined to be true ("truthy"),
-    /// and the rest which are false (“falsey”). This partitioning is somewhat arbitrary. 
-    /// Lox follows Ruby’s simple rule: false and nil are falsey, and everything else is truthy. 
+    /// and the rest which are false (“falsey”). This partitioning is somewhat arbitrary.
+    /// Lox follows Ruby’s simple rule: false and nil are falsey, and everything else is truthy.
     pub fn is_truthy(&self) -> bool {
         match self {
             Object::Boolean(b) => *b,

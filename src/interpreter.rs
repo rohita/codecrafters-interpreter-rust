@@ -100,9 +100,13 @@ impl Interpreter {
                 Ok(())
             },
             Stmt::Function { .. } => {
-                // This is similar to how we interpret other literal expressions. We take a function 
-                // syntax node (Stmt::Function) — a compile-time representation of the function — and convert it to 
-                // its runtime representation. Here, that’s a Function::UserDefined that wraps the syntax node.
+                // This is similar to how we interpret other literal expressions. We take a 
+                // function syntax node (Stmt::Function) — a compile-time representation of 
+                // the function — and convert it to its runtime representation. Here, that’s 
+                // a Function::UserDefined that wraps the syntax node.
+                //
+                // Also, this closure “closes over” and holds on to the surrounding variables 
+                // where the function is declared. 
                 let func = Function::UserDefined {declaration: stmt, closure: Rc::clone(&self.environment)}; 
                 let name = func.name();
                 let value = Callable(Box::from(func));
@@ -110,10 +114,18 @@ impl Interpreter {
                 Ok(())
             },
             Stmt::Return { value, .. } => {
-                let mut return_value = Object::Nil;
+                // If we have a return value, we evaluate it, otherwise, we use nil. 
+                let mut return_value = Nil;
                 if let Some(value) = value {
                     return_value = self.evaluate(value)?;
                 }
+                
+                // This can return from anywhere within the body of a function, even deeply 
+                // nested inside other statements. When the return is executed, we need to 
+                // jump all the way out of whatever function it’s currently in and cause the 
+                // function call to complete. We’ll use an exception to unwind the interpreter 
+                // past the visit methods of all the containing statements back to the code 
+                // that began executing the body.
                 Err(Error::Return(return_value))
             },
         }

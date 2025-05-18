@@ -32,18 +32,14 @@ pub enum Stmt {
     /// expression and the body is a statement.
     While { condition: Expr, body: Box<Stmt> },
     
-    Function {
-        name: Token,
-        params: Vec<Token>,
-        /// We store the body as the list of statements 
-        /// contained inside the curly braces.
-        body: Vec<Stmt>,
-    },
-    Return {
-        /// Use token location for error reporting
-        keyword: Token,
-        value: Option<Expr>,
-    },
+    /// A function node has a name, a list of parameters (their names), and then the body. 
+    /// We store the body as the list of statements contained inside the curly braces.
+    Function { name: Token, params: Vec<Token>, body: Vec<Stmt> },
+    
+    /// We use the return keyword token for its location for error reporting, 
+    /// and the value being returned, if any. 
+    Return { keyword: Token, value: Option<Expr> },
+    
     /*
     Class(Class stmt);
      */
