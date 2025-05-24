@@ -4,8 +4,12 @@ use crate::object::Object;
 use crate::token::Token;
 use std::collections::HashMap;
 use std::rc::Rc;
+use crate::function::Function;
 
-/// The bindings that associate variables to values need to be stored somewhere. 
+/// Mutable type to easily modify values in memory
+pub type MutableEnvironment = Rc<RefCell<Environment>>;
+
+/// The bindings that associate variables to values need to be stored somewhere.
 /// This storage is called an 'environment'. This is a map where the keys are variable 
 /// names and the values are their values. We could have stuff this map and the code to 
 /// manage it right into Interpreter, but since it forms a nicely delineated concept, 
@@ -26,24 +30,26 @@ pub struct Environment {
     values: HashMap<String, Object>,
     
     /// This is the parent environment (the outer scope).
-    enclosing: Option<Rc<RefCell<Environment>>>,
+    enclosing: Option<MutableEnvironment>,
 }
 
 impl Environment {
-    /// Constructor for the global scope’s environment
-    pub fn new() -> Environment {
-        Self {
+    /// The globals
+    pub fn global_env() -> MutableEnvironment {
+        let mut global = Self {
             values: HashMap::new(),
             enclosing: None,
-        }
+        };
+        global.define("clock".to_string(), Object::Callable(Box::from(Function::Clock)));
+        Rc::new(RefCell::new(global))
     }
 
     /// This constructor creates a new local scope nested inside the given outer one.
-    pub fn new_enclosing(enclosing: &Rc<RefCell<Environment>>) -> Environment {
-        Self {
+    pub fn new(enclosing: &MutableEnvironment) -> MutableEnvironment {
+        Rc::new(RefCell::new(Self {
             values: HashMap::new(),
             enclosing: Some(Rc::clone(enclosing)),
-        }
+        }))
     }
 
     /// A variable definition binds a new name to a value.
@@ -73,9 +79,16 @@ impl Environment {
         }
     }
 
-    pub fn get(&self, name: Token) -> Result<Object, Error> {
-        let variable = name.lexeme.clone();
-        if let Some(value) = self.values.get(&variable) {
+    pub fn assign_at(&mut self, distance: usize, name: Token, value: Object) -> Result<(), Error> {
+        if distance == 0 {
+            return self.assign(name, value);
+        }
+        self.ancestor(distance).borrow_mut().assign(name, value)
+    }
+
+    pub fn get(&self, name: &Token) -> Result<Object, Error> {
+        let variable = &name.lexeme;
+        if let Some(value) = self.values.get(variable) {
             return Ok(value.clone());
         }
 
@@ -83,16 +96,33 @@ impl Environment {
         match &self.enclosing {
             Some(outer) => outer.borrow().get(name),
             None => Err(Error::RuntimeError(
-                name,
+                name.clone(),
                 format!("Undefined variable: '{}'", variable),
             )),
         }
     }
 
-    // pub fn get_enclosing(&self) -> Environment {
-    //     match &self.enclosing {
-    //         None => panic!("No enclosing environment"),
-    //         Some(outer) => **outer,
-    //     }
-    // }
+    /// The previous get() method dynamically walks the chain of enclosing environments,
+    /// scouring each one to see if the variable might be hiding in there somewhere.
+    /// With this, we know exactly which environment in the chain will have the variable.
+    pub fn get_at(&self, distance: usize, name: &Token) -> Result<Object, Error> {
+        if distance == 0 {
+            return self.get(name);
+        }
+        self.ancestor(distance).borrow().get(name)
+    }
+
+    fn ancestor(&self, distance: usize) -> MutableEnvironment {
+        let mut environment = self.enclosing.clone().expect("No enclosing environment");
+
+        for _ in 1..distance {
+            let next = environment
+                .borrow()
+                .enclosing
+                .clone()
+                .expect("No enclosing environment at required distance");
+            environment = next;
+        }
+        environment
+    }
 }

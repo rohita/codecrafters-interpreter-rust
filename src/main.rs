@@ -8,6 +8,7 @@ mod stmt;
 mod token;
 mod object;
 mod function;
+mod resolver;
 
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;
@@ -16,6 +17,7 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process::exit;
+use crate::resolver::Resolver;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -74,7 +76,7 @@ fn evaluate(file_contents: String) {
     let mut parser = Parser::new(tokens);
     if let Ok(expr) = parser.expression() {
         let mut interpreter = Interpreter::new();
-        match interpreter.evaluate(expr) {
+        match interpreter.evaluate(&expr) {
             Ok(evaluated) => println!("{evaluated}"),
             Err(error) => error::runtime_error(error),
         }
@@ -86,6 +88,8 @@ fn run(file_contents: String) {
     let tokens = lexer.scan_tokens();
     let mut parser = Parser::new(tokens);
     let stmts = parser.parse();
-    let mut interpreter = Interpreter::new();
-    interpreter.interpret(stmts);
+    let mut resolver = Resolver::new();
+    let locals = resolver.resolve(&stmts);
+    let mut interpreter = Interpreter::new_with_resolver(locals);
+    interpreter.interpret(&stmts);
 }

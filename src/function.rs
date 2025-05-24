@@ -1,12 +1,12 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::time::{SystemTime, UNIX_EPOCH};
-use crate::environment::Environment;
+use crate::environment::{Environment, MutableEnvironment};
 use crate::error::Error;
 use crate::interpreter::Interpreter;
 use crate::object::Object;
 use crate::object::Object::Nil;
 use crate::stmt::Stmt;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Debug)]
 pub enum Function {
@@ -19,7 +19,7 @@ pub enum Function {
         /// This is the environment that is active when the function is declared 
         /// not when it’s called. It represents the lexical scope surrounding the 
         /// function declaration.
-        closure: Rc<RefCell<Environment>>, 
+        closure: MutableEnvironment, 
     },
 }
 
@@ -63,12 +63,12 @@ impl Function {
                     // in this new function-local environment. Up until now, the current environment
                     // was the environment where the function was being called. Now, we teleport from
                     // there inside the new parameter space we’ve created for the function.
-                    let scope = Rc::new(RefCell::new(Environment::new_enclosing(closure)));
+                    let scope = Environment::new(closure);
                     for (i, param) in params.iter().enumerate() {
                         scope.borrow_mut().define(param.clone().lexeme, args[i].clone());
                     }
                     let mut function_interpreter = Interpreter::new_with_env(scope);
-                    return match function_interpreter.execute_block(body.clone()) {
+                    return match function_interpreter.execute_block(body) {
                         Err(Error::Return(value)) => Ok(value),
                         Err(r) => Err(r),
                         // Every Lox function must return something, even if it contains 
@@ -80,10 +80,4 @@ impl Function {
             }
         }
     }
-}
-
-pub fn globals() -> Rc<RefCell<Environment>> {
-    let env = Rc::new(RefCell::new(Environment::new()));
-    env.borrow_mut().define("clock".to_string(), Object::Callable(Box::from(Function::Clock)));
-    env
 }
