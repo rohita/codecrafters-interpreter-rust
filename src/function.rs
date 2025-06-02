@@ -1,11 +1,10 @@
+use std::rc::Rc;
 use crate::environment::{Environment, MutableEnvironment};
 use crate::error::Error;
 use crate::interpreter::Interpreter;
 use crate::object::Object;
 use crate::object::Object::Nil;
 use crate::stmt::Stmt;
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Debug)]
@@ -27,7 +26,7 @@ impl Function {
     pub fn name(&self) -> String {
         match self {
             Function::Clock => "clock".to_string(),
-            Function::UserDefined {declaration, ..} => {
+            Function::UserDefined { declaration, ..} => {
                 match declaration {
                     Stmt::Function { name, .. } => name.lexeme.clone(),
                     _ => "unknown".to_string(),
@@ -48,7 +47,7 @@ impl Function {
         }
     }
 
-    pub fn call(&self, args: Vec<Object>) -> Result<Object, Error> {
+    pub fn call(&self, interpreter: &mut Interpreter, args: Vec<Object>) -> Result<Object, Error> {
         match self {
             Function::Clock => {
                 let timestamp_f64 = SystemTime::now()
@@ -63,12 +62,12 @@ impl Function {
                     // in this new function-local environment. Up until now, the current environment
                     // was the environment where the function was being called. Now, we teleport from
                     // there inside the new parameter space we’ve created for the function.
-                    let scope = Environment::new(closure);
+                    let scope = Environment::new(closure.clone(), &self.name());
                     for (i, param) in params.iter().enumerate() {
-                        scope.borrow_mut().define(param.clone().lexeme, args[i].clone());
+                        scope.borrow_mut().define(param.lexeme.clone(), args[i].clone());
                     }
-                    let mut function_interpreter = Interpreter::new_with_env(scope);
-                    return match function_interpreter.execute_block(body) {
+                    
+                    return match interpreter.execute_block(body, scope) {
                         Err(Error::Return(value)) => Ok(value),
                         Err(r) => Err(r),
                         // Every Lox function must return something, even if it contains 

@@ -73,7 +73,7 @@ impl Display for Expr {
                 f.write_fmt(format_args!("({} {left} {right})", operator.lexeme))
             },
             Expr::Grouping { expression } => f.write_fmt(format_args!("(group {})", expression)),
-            Expr::Variable { name } => f.write_fmt(format_args!("(var {})", name.lexeme)),
+            Expr::Variable { name } => f.write_fmt(format_args!("(var {}, line {})", name.lexeme, name.line)),
             Expr::Assign { name, value } => {
                 f.write_fmt(format_args!("(= {} {})", name.lexeme, value))
             },

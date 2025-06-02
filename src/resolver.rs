@@ -1,10 +1,8 @@
-use std::collections::HashMap;
-use crate::error;
 use crate::error::token_error;
-use crate::error::Error;
 use crate::expr::Expr;
 use crate::stmt::Stmt;
 use crate::token::Token;
+use std::collections::HashMap;
 
 /// This is kind of step 2.5. After the parser produces the syntax tree, but 
 /// before the interpreter starts executing it, we’ll do a single walk over 
@@ -41,31 +39,27 @@ impl Resolver {
     }
     
     pub fn resolve(&mut self, statements: &Vec<Stmt>) -> HashMap<*const Expr, usize> {
-        if let Err(error) = self.resolve_block(statements) {
-            error::runtime_error(error);
-        }
+        self.resolve_block(statements);
         self.resolved.clone()
     }
 
-    fn resolve_block(&mut self, statements: &Vec<Stmt>) -> Result<(), Error> {
+    fn resolve_block(&mut self, statements: &Vec<Stmt>) {
         for statement in statements {
-            self.resolve_statement(statement)?;
+            self.resolve_statement(statement);
         }
-        Ok(())
     }
     
     /// This method is similar to the execute() method in Interpreter — it 
     /// applies the Visitor pattern to the given syntax tree node. We handle every 
     /// place where a variable is declared, read, or written, and every place where 
     /// a scope is created or destroyed. 
-    fn resolve_statement(&mut self, stmt: &Stmt) -> Result<(), Error> {
+    fn resolve_statement(&mut self, stmt: &Stmt) {
         match stmt {
             Stmt::Block { statements } => {
                 // Introduces a new scope for the statements it contains.
                 self.begin_scope();
-                self.resolve_block(statements)?;
+                self.resolve_block(statements);
                 self.end_scope();
-                Ok(())
             }
             Stmt::Var { name, initializer } => {
                 // Resolving a variable declaration adds a new entry to the current 
@@ -74,22 +68,19 @@ impl Resolver {
                 // refers to a variable with the same name as the variable being declared. 
                 self.declare(name);
                 if let Some(expr) = initializer {
-                    self.resolve_expression(expr)?;
+                    self.resolve_expression(expr);
                 }
                 self.define(name);
-                Ok(())
             }
             Stmt::Function { name, .. } => {
                 // A function declaration introduces a new scope for its body and 
                 // binds its parameters in that scope.
                 self.declare(name);
                 self.define(name); // This lets function recursively refer to itself inside its body.
-                self.resolve_function(stmt)?;
-                Ok(())
+                self.resolve_function(stmt);
             }
             Stmt::Expression { expression } => {
-                self.resolve_expression(expression)?;
-                Ok(())
+                self.resolve_expression(expression);
             }
             Stmt::If { condition, then_branch, else_branch } => {
                 // An if statement has an expression for its condition and one or two statements 
@@ -98,35 +89,31 @@ impl Resolver {
                 // condition and both branches. Whereas a dynamic execution steps only into the 
                 // branch that *is* run, a static analysis is conservative — it analyzes any branch 
                 // that *could* be run. Since either one could be reached at runtime, we resolve both.
-                self.resolve_expression(condition)?;
-                self.resolve_statement(then_branch)?;
+                self.resolve_expression(condition);
+                self.resolve_statement(then_branch);
                 if let Some(else_branch) = else_branch {
-                    self.resolve_statement(else_branch)?;
+                    self.resolve_statement(else_branch);
                 }
-                Ok(())
             }
             Stmt::Print { expression } => {
-                self.resolve_expression(expression)?;
-                Ok(())
+                self.resolve_expression(expression);
             }
             Stmt::Return { value, .. } => {
                 if let Some(expr) = value {
-                    self.resolve_expression(expr)?;
+                    self.resolve_expression(expr);
                 }
-                Ok(())
             }
             Stmt::While { condition, body } => {
                 // Same as `if` statements, we resolve condition and body exactly once.
-                self.resolve_expression(condition)?;
-                self.resolve_statement(body)?;
-                Ok(())
+                self.resolve_expression(condition);
+                self.resolve_statement(body);
             }
         }
     }
 
     /// This method is similar to the evaluate() method in Interpreter — it 
     /// applies the Visitor pattern to the given syntax tree node.
-    fn resolve_expression(&mut self, expression: &Expr) -> Result<(), Error> {
+    fn resolve_expression(&mut self, expression: &Expr) {
         match expression {
             Expr::Variable { name } => {
                 // It's a compile error if an initializer mentions the variable being initialized.
@@ -135,42 +122,34 @@ impl Resolver {
                     token_error(name.clone(), "Can't read local variable in its own initializer.".into());
                 }
                 self.resolve_local(expression, name);
-                Ok(())
             }
             Expr::Assign { name, value } => {
-                self.resolve_expression(value)?;
+                self.resolve_expression(value);
                 self.resolve_local(expression, name);
-                Ok(())
             }
             Expr::Binary { left, right, .. } => {
-                self.resolve_expression(left)?;
-                self.resolve_expression(right)?;
-                Ok(())
+                self.resolve_expression(left);
+                self.resolve_expression(right);
             }
             Expr::Call { callee, arguments, .. } => {
-                self.resolve_expression(callee)?;
+                self.resolve_expression(callee);
                 for argument in arguments {
-                    self.resolve_expression(argument)?;
+                    self.resolve_expression(argument);
                 }
-                Ok(())
             }
             Expr::Grouping { expression } => {
-                self.resolve_expression(expression)?;
-                Ok(())
+                self.resolve_expression(expression);
             }
             Expr::Literal { .. } => {
                 // A literal expression doesn’t mention any variables and 
                 // doesn’t contain any subexpressions so there is no work to do.
-                Ok(())
             }
             Expr::Logical { left, right, .. } => {
-                self.resolve_expression(left)?;
-                self.resolve_expression(right)?;
-                Ok(())
+                self.resolve_expression(left);
+                self.resolve_expression(right);
             }
             Expr::Unary { right, .. } => {
-                self.resolve_expression(right)?;
-                Ok(())
+                self.resolve_expression(right);
             }
         }
     }
@@ -206,9 +185,10 @@ impl Resolver {
     fn resolve_local(&mut self, expr: &Expr, name: &Token) {
         for (distance, scope) in self.scopes.iter().rev().enumerate() {
             if scope.contains_key(&name.lexeme) { 
-                //let ptr = expr as *const Expr;
-                //eprintln!("Distance: ptr: {:?} name: {} lexeme: {} distance: {distance}", ptr, expr.to_string(), name.lexeme);
+                let ptr = expr as *const Expr;
+                eprintln!("Put Distance: ptr: {:?} name: {} lexeme: {} distance: {distance}", ptr, expr.to_string(), name.lexeme);
                 self.resolved.insert(expr, distance);
+                return;
             }
         }
     }
@@ -218,17 +198,16 @@ impl Resolver {
     /// At runtime, declaring a function doesn’t do anything with the function’s body. The 
     /// body doesn’t get touched until later when the function is called. In a static analysis, 
     /// we immediately traverse into the body right then and there.
-    fn resolve_function(&mut self, stmt: &Stmt) -> Result<(), Error> {
+    fn resolve_function(&mut self, stmt: &Stmt) {
         self.begin_scope();
         if let Stmt::Function{ params, body, .. } = stmt {
             for param in params {
                 self.declare(param);
                 self.define(param)
             }
-            self.resolve_block(body)?;
+            self.resolve_block(body);
         }
         
         self.end_scope();
-        Ok(())
     }
 }

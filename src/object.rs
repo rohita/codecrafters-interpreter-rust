@@ -3,6 +3,7 @@ use crate::error::Error;
 use crate::function::Function;
 use crate::token::Token;
 use std::fmt::Display;
+use crate::interpreter::Interpreter;
 
 #[derive(Clone, Debug)]
 pub enum Object {
@@ -48,7 +49,7 @@ impl Object {
         }
     }
 
-    pub fn call(&self, args: Vec<Object>, paren: Token) -> Result<Object, Error> {
+    pub fn call(&self, interpreter: &mut Interpreter, args: Vec<Object>, paren: Token) -> Result<Object, Error> {
         match self {
             Object::Callable(func) => {
                 if args.len() != func.arity() {
@@ -57,7 +58,7 @@ impl Object {
                         format!("Expected {} arguments but got {}.", func.arity(), args.len()),
                     ));
                 }
-                func.call(args)
+                func.call(interpreter, args)
             }
             _ => Err(Error::RuntimeError(paren, "Can only call functions and classes.".to_string())),
         }

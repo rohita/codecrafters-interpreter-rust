@@ -3,6 +3,7 @@ use crate::error::Error;
 use crate::object::Object;
 use crate::token::Token;
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::rc::Rc;
 use crate::function::Function;
 
@@ -22,6 +23,9 @@ pub type MutableEnvironment = Rc<RefCell<Environment>>;
 /// Functions and variables occupy the same namespace.
 #[derive(Debug)]
 pub struct Environment {
+    /// The name of the scope which owns this environment. Helps with debugging. 
+    name: String,
+    
     /// Map to store the bindings. It uses bare strings for the keys, not tokens. 
     /// A token represents a unit of code at a specific place in the source text, 
     /// but when it comes to looking up variables, all identifier tokens with the 
@@ -37,6 +41,7 @@ impl Environment {
     /// The globals
     pub fn global_env() -> MutableEnvironment {
         let mut global = Self {
+            name: "global".to_string(),
             values: HashMap::new(),
             enclosing: None,
         };
@@ -45,10 +50,11 @@ impl Environment {
     }
 
     /// This constructor creates a new local scope nested inside the given outer one.
-    pub fn new(enclosing: &MutableEnvironment) -> MutableEnvironment {
+    pub fn new(enclosing: MutableEnvironment, name: &str) -> MutableEnvironment {
         Rc::new(RefCell::new(Self {
+            name: name.to_string(),
             values: HashMap::new(),
-            enclosing: Some(Rc::clone(enclosing)),
+            enclosing: Some(enclosing),
         }))
     }
 
@@ -56,6 +62,7 @@ impl Environment {
     pub fn define(&mut self, name: String, value: Object) {
         // A new variable is always declared in the current innermost scope.
         // No need to define in outer scope.
+        // eprintln!("env:{} var: {name}: value: {value:#?}", self.name);
         self.values.insert(name, value);
     }
 
@@ -124,5 +131,22 @@ impl Environment {
             environment = next;
         }
         environment
+    }
+}
+
+impl Display for Environment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        
+        if let Some(enclosing) = &self.enclosing {
+            write!(
+                f,
+                "({},{:?},[{}])",
+                self.name,
+                self.values.keys(),
+                enclosing.borrow()
+            )
+        } else {
+            write!(f, "({},{:?})", self.name, self.values.keys())
+        }
     }
 }

@@ -8,7 +8,6 @@ use crate::object::Object;
 use crate::object::Object::*;
 use crate::stmt::Stmt;
 use crate::token::TokenType::*;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -51,11 +50,6 @@ impl Interpreter {
             locals: Some(locals),
         }
     }
-    
-    // TODO: Try to get rid of this constructor
-    pub fn new_with_env(environment: MutableEnvironment) -> Interpreter {
-        Self { environment, locals: None, globals: Environment::global_env() }
-    }
 
     /// Takes in a list of statements — in other words, a program.
     pub fn interpret(&mut self, statements: &Vec<Stmt>) {
@@ -70,11 +64,12 @@ impl Interpreter {
         }
     }
     
-    pub fn execute_block(&mut self, statements: &Vec<Stmt>) -> Result<(), Error> {
-        for statement in statements {
-            self.execute(statement)?;
-        }
-        Ok(())
+    pub fn execute_block(&mut self, statements: &Vec<Stmt>, block_scope: MutableEnvironment) -> Result<(), Error> {
+        let previous = self.environment.clone();
+        self.environment = block_scope;
+        let result = statements.iter().try_for_each(|stmt| self.execute(stmt));
+        self.environment = previous;
+        result
     }
 
     /// This is the statement analogue to the evaluate() method we have for expressions.
@@ -96,12 +91,12 @@ impl Interpreter {
                     value = self.evaluate(expr)?;
                 }
                 self.environment.borrow_mut().define(name.lexeme.clone(), value.clone());
+                eprintln!("{}", self.environment.borrow());
                 Ok(())
             }
             Stmt::Block { statements } => {
-                let block_scope = Environment::new(&self.environment);
-                let mut block_interpreter = Interpreter::new_with_env(block_scope);
-                block_interpreter.execute_block(statements)?;
+                let block_scope = Environment::new(self.environment.clone(), "block");
+                self.execute_block(statements, block_scope)?;
                 Ok(())
             }
             Stmt::If { condition, then_branch, else_branch } => {
@@ -127,7 +122,7 @@ impl Interpreter {
                 //
                 // Also, this closure “closes over” and holds on to the surrounding variables
                 // where the function is declared.
-                let func = Function::UserDefined {declaration: stmt.clone(), closure: Rc::clone(&self.environment)}; 
+                let func = Function::UserDefined {declaration: stmt.clone(), closure: self.environment.clone()}; 
                 let name = func.name();
                 let value = Callable(Box::from(func));
                 self.environment.borrow_mut().define(name, value);
@@ -240,14 +235,16 @@ impl Interpreter {
                     args_evaluated.push(self.evaluate(argument)?);
                 }
 
-                callee_evaluated.call(args_evaluated, paren.clone())
+                callee_evaluated.call(self, args_evaluated, paren.clone())
             },
         }
     }
 
     fn get_depth(&self, expr: &Expr) -> Option<usize> {
         let ptr = expr as *const Expr;
-        self.locals.as_ref()?.get(&ptr).copied()
+        let depth = self.locals.as_ref()?.get(&ptr).copied();
+        eprintln!("Get Distance: ptr: {:?} name: {} distance: {:?}", ptr, expr.to_string(), depth);
+        depth
     }
 }
 
