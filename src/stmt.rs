@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 use std::fmt::Display;
+use std::rc::Rc;
 use crate::expr::Expr;
+use crate::function::FunctionDeclaration;
 use crate::token::Token;
 
 /// Stmt is one of the two node types in the Abstract Syntax Tree (AST). 
@@ -32,9 +34,8 @@ pub enum Stmt {
     /// expression and the body is a statement.
     While { condition: Expr, body: Box<Stmt> },
     
-    /// A function node has a name, a list of parameters (their names), and then the body. 
-    /// We store the body as the list of statements contained inside the curly braces.
-    Function { name: Token, params: Vec<Token>, body: Vec<Stmt> },
+    /// A function statement is declared with a name, a list of parameters, and its body.
+    Function { decl: Rc<FunctionDeclaration> },
     
     /// We use the return keyword token for its location for error reporting, 
     /// and the value being returned, if any. 

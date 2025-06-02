@@ -6,13 +6,23 @@ use crate::object::Object;
 use crate::object::Object::Nil;
 use crate::stmt::Stmt;
 use std::time::{SystemTime, UNIX_EPOCH};
+use crate::token::Token;
+
+/// A function declaration has a name, a list of parameters (their names), and then the body. 
+/// We store the body as the list of statements contained inside the curly braces.
+#[derive(Clone, Debug)]
+pub struct FunctionDeclaration {
+    pub name: Token,
+    pub params: Vec<Token>,
+    pub body: Vec<Stmt>,
+}
 
 #[derive(Clone, Debug)]
 pub enum Function {
     Clock,
     UserDefined {
         /// Stmt::Function
-        declaration: Stmt, 
+        declaration: Rc<FunctionDeclaration>, 
         
         /// This holds surrounding variables where the function is declared.
         /// This is the environment that is active when the function is declared 
@@ -26,24 +36,14 @@ impl Function {
     pub fn name(&self) -> String {
         match self {
             Function::Clock => "clock".to_string(),
-            Function::UserDefined { declaration, ..} => {
-                match declaration {
-                    Stmt::Function { name, .. } => name.lexeme.clone(),
-                    _ => "unknown".to_string(),
-                }
-            }
+            Function::UserDefined { declaration, ..} => declaration.name.lexeme.clone()
         }
     }
 
     pub fn arity(&self) -> usize {
         match self {
             Function::Clock => 0,
-            Function::UserDefined { declaration, ..} => {
-                match declaration {
-                    Stmt::Function { params, .. } => params.len(),
-                    _ => 0
-                }
-            }
+            Function::UserDefined { declaration, ..} => declaration.params.len()
         }
     }
 
@@ -57,25 +57,22 @@ impl Function {
                 Ok(Object::Number(timestamp_f64))
             }
             Function::UserDefined {declaration, closure } => {
-                if let Stmt::Function { params, body, .. } = declaration {
-                    // We create a new environment at each call. We will execute the body of the function
-                    // in this new function-local environment. Up until now, the current environment
-                    // was the environment where the function was being called. Now, we teleport from
-                    // there inside the new parameter space we’ve created for the function.
-                    let scope = Environment::new(closure.clone(), &self.name());
-                    for (i, param) in params.iter().enumerate() {
-                        scope.borrow_mut().define(param.lexeme.clone(), args[i].clone());
-                    }
-                    
-                    return match interpreter.execute_block(body, scope) {
-                        Err(Error::Return(value)) => Ok(value),
-                        Err(r) => Err(r),
-                        // Every Lox function must return something, even if it contains 
-                        // no return statements at all. We use nil for this.
-                        _ => Ok(Nil)
-                    }
+                // We create a new environment at each call. We will execute the body of the function
+                // in this new function-local environment. Up until now, the current environment
+                // was the environment where the function was being called. Now, we teleport from
+                // there inside the new parameter space we’ve created for the function.
+                let scope = Environment::new(closure.clone(), &self.name());
+                for (i, param) in declaration.params.iter().enumerate() {
+                    scope.borrow_mut().define(param.lexeme.clone(), args[i].clone());
                 }
-                unreachable!()
+                
+                match interpreter.execute_block(&declaration.body, scope) {
+                    Err(Error::Return(value)) => Ok(value),
+                    Err(r) => Err(r),
+                    // Every Lox function must return something, even if it contains 
+                    // no return statements at all. We use nil for this.
+                    _ => Ok(Nil)
+                }
             }
         }
     }

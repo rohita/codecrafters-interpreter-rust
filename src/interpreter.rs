@@ -9,7 +9,6 @@ use crate::object::Object::*;
 use crate::stmt::Stmt;
 use crate::token::TokenType::*;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 /// Interpreter is the third step. It takes in the AST produced by the parser and
 /// recursively traverse it, building up a value which it ultimately returned.
@@ -19,15 +18,15 @@ use std::rc::Rc;
 /// The two note types - Stmt and Expr - are handled in separate methods. Stmt are
 /// executed in the `execute` method, and Expr are evaluated in the `evaluate` method.
 pub struct Interpreter {
-    /// This tracks the current environment. 
+    /// This tracks the current environment.
     /// It changes as we enter and exit local scopes.
     environment: MutableEnvironment,
 
     /// Holds a fixed reference to the outermost global environment.
     globals: MutableEnvironment,
-    
-    /// "Side table" that associates each AST node with its "resolved location". 
-    /// That is, its distance to the outer environment where the interpreter can 
+
+    /// "Side table" that associates each AST node with its "resolved location".
+    /// That is, its distance to the outer environment where the interpreter can
     /// find the variable’s value.
     locals: Option<HashMap<*const Expr, usize>>,
 }
@@ -41,7 +40,7 @@ impl Interpreter {
             locals: None,
         }
     }
-    
+
     pub fn new_with_resolver(locals: HashMap<*const Expr, usize>) -> Interpreter {
         let global = Environment::global_env();
         Self {
@@ -91,7 +90,6 @@ impl Interpreter {
                     value = self.evaluate(expr)?;
                 }
                 self.environment.borrow_mut().define(name.lexeme.clone(), value.clone());
-                eprintln!("{}", self.environment.borrow());
                 Ok(())
             }
             Stmt::Block { statements } => {
@@ -114,7 +112,7 @@ impl Interpreter {
                 }
                 Ok(())
             },
-            Stmt::Function { .. } => {
+            Stmt::Function { decl } => {
                 // This is similar to how we interpret other literal expressions. We take a
                 // function syntax node (Stmt::Function) — a compile-time representation of
                 // the function — and convert it to its runtime representation. Here, that’s
@@ -122,7 +120,7 @@ impl Interpreter {
                 //
                 // Also, this closure “closes over” and holds on to the surrounding variables
                 // where the function is declared.
-                let func = Function::UserDefined {declaration: stmt.clone(), closure: self.environment.clone()}; 
+                let func = Function::UserDefined {declaration: decl.clone(), closure: self.environment.clone()};
                 let name = func.name();
                 let value = Callable(Box::from(func));
                 self.environment.borrow_mut().define(name, value);
@@ -229,7 +227,7 @@ impl Interpreter {
                 self.evaluate(right)
             },
             Expr::Call { callee, arguments, paren } => {
-                let callee_evaluated = self.evaluate(callee)?;    
+                let callee_evaluated = self.evaluate(callee)?;
                 let mut args_evaluated = Vec::new();
                 for argument in arguments {
                     args_evaluated.push(self.evaluate(argument)?);
@@ -243,7 +241,7 @@ impl Interpreter {
     fn get_depth(&self, expr: &Expr) -> Option<usize> {
         let ptr = expr as *const Expr;
         let depth = self.locals.as_ref()?.get(&ptr).copied();
-        eprintln!("Get Distance: ptr: {:?} name: {} distance: {:?}", ptr, expr.to_string(), depth);
+        //eprintln!("Get Distance: ptr: {:?} name: {} distance: {:?}", ptr, expr.to_string(), depth);
         depth
     }
 }

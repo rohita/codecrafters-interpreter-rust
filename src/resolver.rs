@@ -3,6 +3,7 @@ use crate::expr::Expr;
 use crate::stmt::Stmt;
 use crate::token::Token;
 use std::collections::HashMap;
+use crate::function::FunctionDeclaration;
 
 /// This is kind of step 2.5. After the parser produces the syntax tree, but 
 /// before the interpreter starts executing it, we’ll do a single walk over 
@@ -72,12 +73,12 @@ impl Resolver {
                 }
                 self.define(name);
             }
-            Stmt::Function { name, .. } => {
+            Stmt::Function { decl } => {
                 // A function declaration introduces a new scope for its body and 
                 // binds its parameters in that scope.
-                self.declare(name);
-                self.define(name); // This lets function recursively refer to itself inside its body.
-                self.resolve_function(stmt);
+                self.declare(&decl.name);
+                self.define(&decl.name); // This lets function recursively refer to itself inside its body.
+                self.resolve_function(decl);
             }
             Stmt::Expression { expression } => {
                 self.resolve_expression(expression);
@@ -185,8 +186,8 @@ impl Resolver {
     fn resolve_local(&mut self, expr: &Expr, name: &Token) {
         for (distance, scope) in self.scopes.iter().rev().enumerate() {
             if scope.contains_key(&name.lexeme) { 
-                let ptr = expr as *const Expr;
-                eprintln!("Put Distance: ptr: {:?} name: {} lexeme: {} distance: {distance}", ptr, expr.to_string(), name.lexeme);
+                //let ptr = expr as *const Expr;
+                //eprintln!("Put Distance: ptr: {:?} name: {} lexeme: {} distance: {distance}", ptr, expr.to_string(), name.lexeme);
                 self.resolved.insert(expr, distance);
                 return;
             }
@@ -198,16 +199,13 @@ impl Resolver {
     /// At runtime, declaring a function doesn’t do anything with the function’s body. The 
     /// body doesn’t get touched until later when the function is called. In a static analysis, 
     /// we immediately traverse into the body right then and there.
-    fn resolve_function(&mut self, stmt: &Stmt) {
+    fn resolve_function(&mut self, function: &FunctionDeclaration) {
         self.begin_scope();
-        if let Stmt::Function{ params, body, .. } = stmt {
-            for param in params {
-                self.declare(param);
-                self.define(param)
-            }
-            self.resolve_block(body);
+        for param in &function.params {
+            self.declare(param);
+            self.define(param)
         }
-        
+        self.resolve_block(&function.body);
         self.end_scope();
     }
 }

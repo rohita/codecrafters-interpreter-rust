@@ -33,7 +33,8 @@ fn main() {
         eprintln!("Failed to read file {filename}");
         exit(65);
     });
-    eprintln!("{file_contents}"); 
+    //eprintln!("{file_contents}"); 
+    
     match command.as_str() {
         "tokenize" => tokenize(file_contents),
         "parse" => parse(file_contents),

@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use crate::error;
 use crate::error::Error;
 use crate::error::Error::ParseError;
@@ -6,6 +7,7 @@ use crate::object::Object;
 use crate::stmt::Stmt;
 use crate::token::{Token, TokenType};
 use TokenType::*;
+use crate::function::FunctionDeclaration;
 
 /// Parsing is the second step in compiler. Like the scanner, the parser consumes a
 /// flat input sequence, only now we’re reading tokens instead of characters, and returns
@@ -107,13 +109,13 @@ impl Parser {
         self.consume(LEFT_PAREN, format!("Expect '(' after {kind} name.").as_str())?;
 
         // parameters → IDENTIFIER ( "," IDENTIFIER )* ;
-        let mut parameters = Vec::new();
+        let mut params = Vec::new();
         if !self.check(RIGHT_PAREN) {
             loop {
-                if parameters.len() > 255 {
+                if params.len() > 255 {
                     self.error(self.peek(), "Can't have more than 255 parameters.");
                 }
-                parameters.push(self.consume(IDENTIFIER, "Expect parameter name.")?);
+                params.push(self.consume(IDENTIFIER, "Expect parameter name.")?);
                 
                 if !self.match_token([COMMA])  {
                     break;
@@ -124,7 +126,7 @@ impl Parser {
         
         self.consume(LEFT_BRACE, format!("Expect '{{' before {kind} body.").as_str())?;
         let body = self.block()?;
-        Ok(Stmt::Function {name, params: parameters, body})
+        Ok(Stmt::Function { decl: Rc::new(FunctionDeclaration { name, params, body }) })
     }
 
     /// Parses variable declarations 
