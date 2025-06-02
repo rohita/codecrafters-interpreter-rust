@@ -167,8 +167,13 @@ impl Resolver {
     /// one and so that we know the variable exists. We mark it as “not ready yet” by 
     /// binding its name to false in the scope map.
     fn declare(&mut self, name: &Token) {
+        let lexeme = name.lexeme.clone();
         if let Some(innermost_scope) = self.scopes.last_mut() {
-            innermost_scope.insert(name.lexeme.clone(), false);
+            if innermost_scope.contains_key(&lexeme) {
+                token_error(name.clone(), "Already a variable with this name in this scope.".into());
+            }
+            
+            innermost_scope.insert(lexeme, false);
         }
     }
     

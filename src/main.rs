@@ -91,6 +91,12 @@ fn run(file_contents: String) {
     let stmts = parser.parse();
     let mut resolver = Resolver::new();
     let locals = resolver.resolve(&stmts);
+
+    // Stop if there was a resolution error.
+    if error::had_error() {
+        return;;
+    }
+    
     let mut interpreter = Interpreter::new_with_resolver(locals);
     interpreter.interpret(&stmts);
 }
