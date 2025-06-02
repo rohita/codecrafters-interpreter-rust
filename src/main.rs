@@ -94,7 +94,7 @@ fn run(file_contents: String) {
 
     // Stop if there was a resolution error.
     if error::had_error() {
-        return;;
+        return;
     }
     
     let mut interpreter = Interpreter::new_with_resolver(locals);

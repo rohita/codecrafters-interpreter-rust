@@ -5,6 +5,13 @@ use crate::token::Token;
 use std::collections::HashMap;
 use crate::function::FunctionDeclaration;
 
+
+#[derive(Clone, Copy, Debug)]
+pub enum FunctionType {
+    None,
+    Function,
+}
+
 /// This is kind of step 2.5. After the parser produces the syntax tree, but 
 /// before the interpreter starts executing it, we’ll do a single walk over 
 /// the tree to "resolve" all the variables it contains. This variable resolution 
@@ -27,7 +34,11 @@ pub struct Resolver {
     scopes: Vec<HashMap<String, bool>>,
 
     /// Keeps track of all the resolved variables 
-    resolved: HashMap<*const Expr, usize>
+    resolved: HashMap<*const Expr, usize>,
+
+    /// Much like we track scopes as we walk the tree, this is used to track whether the 
+    /// code we are currently visiting is inside a function declaration.
+    current_function: FunctionType,
 }
 
 impl Resolver {
@@ -35,7 +46,8 @@ impl Resolver {
     pub fn new() -> Resolver {
         Self {
             scopes: Vec::new(),
-            resolved: HashMap::new()
+            resolved: HashMap::new(),
+            current_function: FunctionType::None,
         }
     }
     
@@ -78,7 +90,7 @@ impl Resolver {
                 // binds its parameters in that scope.
                 self.declare(&decl.name);
                 self.define(&decl.name); // This lets function recursively refer to itself inside its body.
-                self.resolve_function(decl);
+                self.resolve_function(decl, FunctionType::Function);
             }
             Stmt::Expression { expression } => {
                 self.resolve_expression(expression);
@@ -99,7 +111,11 @@ impl Resolver {
             Stmt::Print { expression } => {
                 self.resolve_expression(expression);
             }
-            Stmt::Return { value, .. } => {
+            Stmt::Return { keyword, value } => {
+                if let FunctionType::None = self.current_function {
+                    token_error(keyword.clone(), "Can't return from top-level code.".into());
+                }
+                
                 if let Some(expr) = value {
                     self.resolve_expression(expr);
                 }
@@ -204,7 +220,10 @@ impl Resolver {
     /// At runtime, declaring a function doesn’t do anything with the function’s body. The 
     /// body doesn’t get touched until later when the function is called. In a static analysis, 
     /// we immediately traverse into the body right then and there.
-    fn resolve_function(&mut self, function: &FunctionDeclaration) {
+    fn resolve_function(&mut self, function: &FunctionDeclaration, function_type: FunctionType) {
+        let enclosing_function = self.current_function;
+        self.current_function = function_type;
+        
         self.begin_scope();
         for param in &function.params {
             self.declare(param);
@@ -212,5 +231,7 @@ impl Resolver {
         }
         self.resolve_block(&function.body);
         self.end_scope();
+        
+        self.current_function = enclosing_function;
     }
 }
