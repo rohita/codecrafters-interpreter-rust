@@ -79,10 +79,7 @@ impl Environment {
         // Walk the chain to find if the key exists
         match &self.enclosing {
             Some(enclosing) => enclosing.borrow_mut().assign(name, value),
-            None => Err(Error::RuntimeError(
-                name,
-                format!("Undefined variable: '{}'", variable),
-            ))
+            None => Err(Error::RuntimeError(name, format!("Undefined variable: '{variable}'")))
         }
     }
 

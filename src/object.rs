@@ -12,6 +12,7 @@ pub enum Object {
     Number(f64),   // Lox uses double-precision numbers even for integer values.
     Nil,
     Callable(Box<Function>),
+    Class(String),
 }
 
 impl Display for Object {
@@ -22,6 +23,7 @@ impl Display for Object {
             Object::Number(n) => f.write_fmt(format_args!("{n}")), // print integer without decimal point
             Object::String(s) => f.write_fmt(format_args!("{s}")),
             Object::Callable(func) => f.write_fmt(format_args!("<fn {}>", func.name())),
+            Object::Class(name) => f.write_fmt(format_args!("{name}")),
         }
     }
 }

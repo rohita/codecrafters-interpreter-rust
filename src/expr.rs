@@ -52,7 +52,6 @@ pub enum Expr {
     /*
     To be implemented:
     GetExpr(Get expr);
-    LogicalExpr(Logical expr);
     SetExpr(Set expr);
     SuperExpr(Super expr);
     ThisExpr(This expr);

@@ -97,6 +97,14 @@ impl Interpreter {
                 self.execute_block(statements, block_scope)?;
                 Ok(())
             }
+            Stmt::Class { name, methods } => {
+                // The two-stage variable binding process allows references 
+                // to the class inside its own methods.
+                self.environment.borrow_mut().define(name.lexeme.clone(), Nil);
+                let klass = Class(name.lexeme.clone());
+                self.environment.borrow_mut().assign(name.clone(), klass)?;
+                Ok(())
+            }
             Stmt::If { condition, then_branch, else_branch } => {
                 let if_value = self.evaluate(condition)?;
                 if if_value.is_truthy() {

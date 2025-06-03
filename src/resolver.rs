@@ -74,6 +74,10 @@ impl Resolver {
                 self.resolve_block(statements);
                 self.end_scope();
             }
+            Stmt::Class { name, methods } => {
+                self.declare(name);
+                self.define(name);
+            }
             Stmt::Var { name, initializer } => {
                 // Resolving a variable declaration adds a new entry to the current 
                 // innermost scope’s map. We split binding into two steps, declaring 

@@ -65,11 +65,16 @@ impl Parser {
     // ---------------------------------------------
 
     /// These statements declare names for variables, functions, classes
-    /// declaration → funDecl | varDecl | statement ;
+    /// declaration → classDecl | funDecl | varDecl | statement ;
     fn declaration(&mut self) -> Option<Stmt> {
         let try_value = {
-            if self.match_token([FUN]) {
-                self.function("function")
+            if self.match_token([CLASS]) {
+                self.class_declaration()
+            } else if self.match_token([FUN]) {
+                match self.function("function") { 
+                    Ok(value) => Ok(Stmt::Function { decl: Rc::new(value) }),
+                    Err(err) => Err(err),
+                }
             } else if self.match_token([VAR]) {
                 self.var_declaration()
             } else {
@@ -101,10 +106,24 @@ impl Parser {
         }
     }
     
+    /// classDecl → "class" IDENTIFIER "{" function* "}" ;
+    fn class_declaration(&mut self) -> Result<Stmt, Error> {
+        let name = self.consume(IDENTIFIER, "Expect class name.")?;
+        self.consume(LEFT_BRACE, "Expect '{{' before class body.")?;
+        
+        let mut methods = Vec::new();
+        while !self.check(RIGHT_BRACE) && !self.is_at_end() {
+            methods.push(Rc::new(self.function("method")?));
+        }
+        
+        self.consume(RIGHT_BRACE, "Expect '}}' after class body.")?;
+        Ok(Stmt::Class { name, methods })
+    }
+    
     /// This parses functions and methods (inside classes). We’ll pass in "function" or “method” 
     /// for kind so that the error messages are specific to the kind of declaration being parsed.
     /// function → IDENTIFIER "(" parameters? ")" block ;
-    fn function(&mut self, kind: &str) -> Result<Stmt, Error> {
+    fn function(&mut self, kind: &str) -> Result<FunctionDeclaration, Error> {
         let name = self.consume(IDENTIFIER, format!("Expect {kind} name").as_str())?;
         self.consume(LEFT_PAREN, format!("Expect '(' after {kind} name.").as_str())?;
 
@@ -126,7 +145,7 @@ impl Parser {
         
         self.consume(LEFT_BRACE, format!("Expect '{{' before {kind} body.").as_str())?;
         let body = self.block()?;
-        Ok(Stmt::Function { decl: Rc::new(FunctionDeclaration { name, params, body }) })
+        Ok(FunctionDeclaration { name, params, body })
     }
 
     /// Parses variable declarations 

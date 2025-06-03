@@ -41,9 +41,10 @@ pub enum Stmt {
     /// and the value being returned, if any. 
     Return { keyword: Token, value: Option<Expr> },
     
-    /*
-    Class(Class stmt);
-     */
+    /// Stores the class’s name and the methods inside its body. Methods are represented 
+    /// by the existing FunctionDeclaration struct that we use for function declaration. That 
+    /// gives us all the bits of state that we need for a method: name, parameter list, and body.
+    Class { name: Token, methods: Vec<Rc<FunctionDeclaration>> },
 }
 
 impl Display for Stmt {
@@ -57,6 +58,7 @@ impl Display for Stmt {
             Stmt::While { .. } => { write!(f, "<While>") },
             Stmt::Function { .. } => { write!(f, "<Function>") },
             Stmt::Return { .. } => { write!(f, "<Return>") },
+            Stmt::Class { .. } => { write!(f, "<Class>") }
         }
     }
 }
