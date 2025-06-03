@@ -13,6 +13,7 @@ pub enum Object {
     Nil,
     Callable(Box<Function>),
     Class(String),
+    Instance(Box<Object>),
 }
 
 impl Display for Object {
@@ -24,6 +25,7 @@ impl Display for Object {
             Object::String(s) => f.write_fmt(format_args!("{s}")),
             Object::Callable(func) => f.write_fmt(format_args!("<fn {}>", func.name())),
             Object::Class(name) => f.write_fmt(format_args!("{name}")),
+            Object::Instance(klass) => f.write_fmt(format_args!("{klass} instance")),
         }
     }
 }
@@ -61,6 +63,11 @@ impl Object {
                     ));
                 }
                 func.call(interpreter, args)
+            }
+            Object::Class(name) => {
+                // When we “call” a class, it instantiates a new Instance 
+                // for the called class and returns it.
+                Ok(Object::Instance(Box::new(self.clone())))
             }
             _ => Err(Error::RuntimeError(paren, "Can only call functions and classes.".to_string())),
         }
