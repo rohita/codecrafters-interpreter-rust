@@ -1,10 +1,10 @@
 use crate::environment::{Environment, MutableEnvironment};
 use crate::error::Error;
 use crate::interpreter::Interpreter;
-use crate::object::Object;
-use crate::object::Object::Nil;
 use crate::stmt::Stmt;
 use crate::token::Token;
+use crate::value::object::Object;
+use crate::value::object::Object::Nil;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 

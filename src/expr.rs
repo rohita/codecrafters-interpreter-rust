@@ -1,4 +1,4 @@
-use crate::object::Object;
+use crate::value::object::Object;
 use crate::token::Token;
 use std::fmt::Display;
 

@@ -1,13 +1,13 @@
-use std::rc::Rc;
 use crate::error;
 use crate::error::Error;
 use crate::error::Error::ParseError;
 use crate::expr::Expr;
-use crate::object::Object;
 use crate::stmt::Stmt;
 use crate::token::{Token, TokenType};
+use crate::value::function::FunctionDeclaration;
+use crate::value::object::Object;
+use std::rc::Rc;
 use TokenType::*;
-use crate::function::FunctionDeclaration;
 
 /// Parsing is the second step in compiler. Like the scanner, the parser consumes a
 /// flat input sequence, only now we’re reading tokens instead of characters, and returns

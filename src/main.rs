@@ -6,20 +6,17 @@ mod parser;
 mod scanner;
 mod stmt;
 mod token;
-mod object;
-mod function;
+mod value;
 mod resolver;
-mod instance;
-mod class;
 
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;
+use crate::resolver::Resolver;
 use crate::scanner::Scanner;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process::exit;
-use crate::resolver::Resolver;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

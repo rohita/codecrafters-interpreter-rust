@@ -1,13 +1,12 @@
-use std::cell::RefCell;
-use std::string::String;
 use crate::error::Error;
-use crate::function::Function;
+use crate::interpreter::Interpreter;
 use crate::token::Token;
+use crate::value::class::Class;
+use crate::value::function::Function;
+use crate::value::instance::Instance;
+use std::cell::RefCell;
 use std::fmt::Display;
 use std::rc::Rc;
-use crate::class::Class;
-use crate::instance::Instance;
-use crate::interpreter::Interpreter;
 
 #[derive(Clone, Debug)]
 pub enum Object {

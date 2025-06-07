@@ -1,11 +1,11 @@
-use std::cell::RefCell;
 use crate::error::Error;
-use crate::object::Object;
 use crate::token::Token;
+use crate::value::function::Function;
+use crate::value::object::Object;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::rc::Rc;
-use crate::function::Function;
 
 /// Mutable type to easily modify values in memory
 pub type MutableEnvironment = Rc<RefCell<Environment>>;

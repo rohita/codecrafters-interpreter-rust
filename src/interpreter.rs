@@ -1,13 +1,14 @@
 use crate::environment::{Environment, MutableEnvironment};
-use crate::{class, error};
+use crate::error;
 use crate::error::Error;
 use crate::error::Error::RuntimeError;
 use crate::expr::Expr;
-use crate::function::Function;
-use crate::object::Object;
-use crate::object::Object::*;
 use crate::stmt::Stmt;
 use crate::token::TokenType::*;
+use crate::value::class;
+use crate::value::function::Function;
+use crate::value::object::Object;
+use crate::value::object::Object::*;
 use std::collections::HashMap;
 
 /// Interpreter is the third step. It takes in the AST produced by the parser and

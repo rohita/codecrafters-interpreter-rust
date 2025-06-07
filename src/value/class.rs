@@ -1,8 +1,8 @@
+use crate::error::Error;
+use crate::value::instance::Instance;
+use crate::value::object::Object;
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::error::Error;
-use crate::instance::Instance;
-use crate::object::Object;
 
 #[derive(Clone, Debug)]
 pub struct Class {

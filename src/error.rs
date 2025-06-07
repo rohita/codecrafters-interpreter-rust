@@ -1,4 +1,4 @@
-use crate::object::Object;
+use crate::value::object::Object;
 use crate::token::{Token, TokenType};
 
 static mut HAD_ERROR: bool = false;

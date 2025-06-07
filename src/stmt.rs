@@ -1,9 +1,8 @@
-#![allow(dead_code)]
+use crate::expr::Expr;
+use crate::token::Token;
+use crate::value::function::FunctionDeclaration;
 use std::fmt::Display;
 use std::rc::Rc;
-use crate::expr::Expr;
-use crate::function::FunctionDeclaration;
-use crate::token::Token;
 
 /// Stmt is one of the two node types in the Abstract Syntax Tree (AST). 
 /// These nodes are higher up than expression nodes in the tree. 

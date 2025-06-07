@@ -1,9 +1,9 @@
+use crate::error::Error;
+use crate::token::Token;
+use crate::value::class::Class;
+use crate::value::object::Object;
 use std::collections::HashMap;
 use std::fmt::Display;
-use crate::class::Class;
-use crate::error::Error;
-use crate::object::Object;
-use crate::token::Token;
 
 /// The runtime representation of an instance of a Lox class.
 #[derive(Clone, Debug)]
