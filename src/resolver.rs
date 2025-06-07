@@ -6,10 +6,13 @@ use std::collections::HashMap;
 
 
 #[derive(Clone, Copy, Debug)]
-pub enum FunctionType {
-    None,
-    Function,
-    Method,
+enum FunctionType {
+    None, Function, Method,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum ClassType {
+    None, Class
 }
 
 /// This is kind of step 2.5. After the parser produces the syntax tree, but 
@@ -39,6 +42,10 @@ pub struct Resolver {
     /// Much like we track scopes as we walk the tree, this is used to track whether the 
     /// code we are currently visiting is inside a function declaration.
     current_function: FunctionType,
+    
+    /// This is used to track whether we are inside a class declaration
+    /// while traversing the syntax tree. 
+    current_class: ClassType,
 }
 
 impl Resolver {
@@ -48,6 +55,7 @@ impl Resolver {
             scopes: Vec::new(),
             resolved: HashMap::new(),
             current_function: FunctionType::None,
+            current_class: ClassType::None,
         }
     }
     
@@ -75,6 +83,9 @@ impl Resolver {
                 self.end_scope();
             }
             Stmt::Class { name, methods } => {
+                let enclosing_class = self.current_class;
+                self.current_class = ClassType::Class;
+                
                 self.declare(name);
                 self.define(name);
                 
@@ -93,6 +104,7 @@ impl Resolver {
                 }
                 
                 self.end_scope();
+                self.current_class = enclosing_class;
             }
             Stmt::Var { name, initializer } => {
                 // Resolving a variable declaration adds a new entry to the current 
@@ -189,6 +201,11 @@ impl Resolver {
                 self.resolve_expression(object);
             }
             Expr::This { keyword } => {
+                if let ClassType::None = self.current_class {
+                    token_error(keyword.clone(), "Can't use 'this' outside of a class.".into());
+                    return;
+                }
+                
                 // this works like a variable
                 self.resolve_local(expression, keyword);    
             }

@@ -47,7 +47,6 @@ impl Function {
     
     pub fn bind(&self, instance: &Instance) -> Function {
         match self {
-            Function::Clock => { self.clone() }
             Function::UserDefined {declaration, closure } => {
                 // We declare “this” as a variable in that environment and bind it to the 
                 // given instance, the instance that the method is being accessed from. 
@@ -58,6 +57,7 @@ impl Function {
                 scope.borrow_mut().define("this".into(), value); 
                 Function::new(declaration.clone(), scope)
             }
+            _ => self.clone()
         }
     }
 
