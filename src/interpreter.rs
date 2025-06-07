@@ -102,7 +102,14 @@ impl Interpreter {
                 // The two-stage variable binding process allows references 
                 // to the class inside its own methods.
                 self.environment.borrow_mut().define(name.lexeme.clone(), Nil);
-                let klass = Class(class::Class::new(name.lexeme.clone()));
+                
+                // Each method declaration becomes a Function object.
+                let mut class_methods = HashMap::new();
+                for method in methods {
+                    let func = Function::new(method.clone(), self.environment.clone());
+                    class_methods.insert(method.name.lexeme.clone(), func); 
+                }
+                let klass = Class(class::Class::new(name.lexeme.clone(), class_methods));
                 self.environment.borrow_mut().assign(name.clone(), klass)?;
                 Ok(())
             }
@@ -129,7 +136,7 @@ impl Interpreter {
                 //
                 // Also, this closure “closes over” and holds on to the surrounding variables
                 // where the function is declared.
-                let func = Function::UserDefined {declaration: decl.clone(), closure: self.environment.clone()};
+                let func = Function::new(decl.clone(), self.environment.clone());
                 let name = func.name();
                 let value = Function(func);
                 self.environment.borrow_mut().define(name, value);

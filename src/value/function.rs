@@ -17,6 +17,7 @@ pub struct FunctionDeclaration {
     pub body: Vec<Stmt>,
 }
 
+/// The runtime representation of a function statement 
 #[derive(Clone, Debug)]
 pub enum Function {
     Clock,
@@ -33,6 +34,10 @@ pub enum Function {
 }
 
 impl Function {
+    pub fn new(declaration: Rc<FunctionDeclaration>, closure: MutableEnvironment) -> Self {
+        Function::UserDefined {declaration, closure }
+    }
+    
     pub fn name(&self) -> String {
         match self {
             Function::Clock => "clock".to_string(),

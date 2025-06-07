@@ -10,6 +10,7 @@ use std::collections::HashMap;
 pub enum FunctionType {
     None,
     Function,
+    Method,
 }
 
 /// This is kind of step 2.5. After the parser produces the syntax tree, but 
@@ -77,6 +78,9 @@ impl Resolver {
             Stmt::Class { name, methods } => {
                 self.declare(name);
                 self.define(name);
+                for method in methods {
+                    self.resolve_function(method, FunctionType::Method);
+                }
             }
             Stmt::Var { name, initializer } => {
                 // Resolving a variable declaration adds a new entry to the current 
