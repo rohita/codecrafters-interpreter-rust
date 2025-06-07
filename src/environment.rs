@@ -45,7 +45,7 @@ impl Environment {
             values: HashMap::new(),
             enclosing: None,
         };
-        global.define("clock".to_string(), Object::Callable(Box::from(Function::Clock)));
+        global.define("clock".to_string(), Object::Function(Function::Clock));
         Rc::new(RefCell::new(global))
     }
 

@@ -1,5 +1,5 @@
 use crate::environment::{Environment, MutableEnvironment};
-use crate::error;
+use crate::{class, error};
 use crate::error::Error;
 use crate::error::Error::RuntimeError;
 use crate::expr::Expr;
@@ -101,7 +101,7 @@ impl Interpreter {
                 // The two-stage variable binding process allows references 
                 // to the class inside its own methods.
                 self.environment.borrow_mut().define(name.lexeme.clone(), Nil);
-                let klass = Class(name.lexeme.clone());
+                let klass = Class(class::Class::new(name.lexeme.clone()));
                 self.environment.borrow_mut().assign(name.clone(), klass)?;
                 Ok(())
             }
@@ -130,7 +130,7 @@ impl Interpreter {
                 // where the function is declared.
                 let func = Function::UserDefined {declaration: decl.clone(), closure: self.environment.clone()};
                 let name = func.name();
-                let value = Callable(Box::from(func));
+                let value = Function(func);
                 self.environment.borrow_mut().define(name, value);
                 Ok(())
             },

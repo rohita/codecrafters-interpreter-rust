@@ -10,6 +10,7 @@ mod object;
 mod function;
 mod resolver;
 mod instance;
+mod class;
 
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;
@@ -34,8 +35,8 @@ fn main() {
         eprintln!("Failed to read file {filename}");
         exit(65);
     });
-    //eprintln!("{file_contents}"); 
-    
+    //eprintln!("{file_contents}");
+
     match command.as_str() {
         "tokenize" => tokenize(file_contents),
         "parse" => parse(file_contents),
@@ -97,7 +98,7 @@ fn run(file_contents: String) {
     if error::had_error() {
         return;
     }
-    
+
     let mut interpreter = Interpreter::new_with_resolver(locals);
     interpreter.interpret(&stmts);
 }

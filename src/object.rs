@@ -5,6 +5,7 @@ use crate::function::Function;
 use crate::token::Token;
 use std::fmt::Display;
 use std::rc::Rc;
+use crate::class::Class;
 use crate::instance::Instance;
 use crate::interpreter::Interpreter;
 
@@ -14,8 +15,8 @@ pub enum Object {
     String(String),
     Number(f64),   // Lox uses double-precision numbers even for integer values.
     Nil,
-    Callable(Box<Function>),
-    Class(String),
+    Function(Function),
+    Class(Class),
     Instance(Rc<RefCell<Instance>>), 
 }
 
@@ -26,8 +27,8 @@ impl Display for Object {
             Object::Nil => f.write_str("nil"),
             Object::Number(n) => f.write_fmt(format_args!("{n}")), // print integer without decimal point
             Object::String(s) => f.write_fmt(format_args!("{s}")),
-            Object::Callable(func) => f.write_fmt(format_args!("<fn {}>", func.name())),
-            Object::Class(name) => f.write_fmt(format_args!("{name}")),
+            Object::Function(func) => f.write_fmt(format_args!("<fn {}>", func.name())),
+            Object::Class(class) => f.write_fmt(format_args!("{}", class.name)),
             Object::Instance(instance) => f.write_fmt(format_args!("{}", instance.borrow())),
         }
     }
@@ -58,21 +59,8 @@ impl Object {
 
     pub fn call(&self, interpreter: &mut Interpreter, args: Vec<Object>, paren: Token) -> Result<Object, Error> {
         match self {
-            Object::Callable(func) => {
-                if args.len() != func.arity() {
-                    return Err(Error::RuntimeError(
-                        paren,
-                        format!("Expected {} arguments but got {}.", func.arity(), args.len()),
-                    ));
-                }
-                func.call(interpreter, args)
-            }
-            Object::Class(_) => {
-                // When we “call” a class, it instantiates a new Instance 
-                // for the called class and returns it.
-                let instance = Instance::new(self.clone());
-                Ok(Object::Instance(Rc::new(RefCell::new(instance))))
-            }
+            Object::Function(func) => func.call(interpreter, args, paren),
+            Object::Class(class) => class.call(),
             _ => Err(Error::RuntimeError(paren, "Can only call functions and classes.".to_string())),
         }
     }

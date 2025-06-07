@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Display;
+use crate::class::Class;
 use crate::error::Error;
 use crate::object::Object;
 use crate::token::Token;
@@ -7,18 +8,18 @@ use crate::token::Token;
 /// The runtime representation of an instance of a Lox class.
 #[derive(Clone, Debug)]
 pub struct Instance {
-    pub klass: Object,
+    pub klass: Class,
     pub fields: HashMap<String, Object>,
 }
 
 impl Display for Instance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} instance", self.klass)
+        write!(f, "{} instance", self.klass.name)
     }
 }
 
 impl Instance {
-    pub fn new(klass: Object) -> Self {
+    pub fn new(klass: Class) -> Self {
         Self { klass, fields: HashMap::new() }
     }
     

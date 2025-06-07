@@ -1,12 +1,12 @@
-use std::rc::Rc;
 use crate::environment::{Environment, MutableEnvironment};
 use crate::error::Error;
 use crate::interpreter::Interpreter;
 use crate::object::Object;
 use crate::object::Object::Nil;
 use crate::stmt::Stmt;
-use std::time::{SystemTime, UNIX_EPOCH};
 use crate::token::Token;
+use std::rc::Rc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// A function declaration has a name, a list of parameters (their names), and then the body. 
 /// We store the body as the list of statements contained inside the curly braces.
@@ -47,7 +47,14 @@ impl Function {
         }
     }
 
-    pub fn call(&self, interpreter: &mut Interpreter, args: Vec<Object>) -> Result<Object, Error> {
+    pub fn call(&self, interpreter: &mut Interpreter, args: Vec<Object>, paren: Token) -> Result<Object, Error> {
+        if args.len() != self.arity() {
+            return Err(Error::RuntimeError(
+                paren,
+                format!("Expected {} arguments but got {}.", self.arity(), args.len()),
+            ));
+        }
+        
         match self {
             Function::Clock => {
                 let timestamp_f64 = SystemTime::now()
