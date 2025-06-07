@@ -1,8 +1,7 @@
 use crate::error::token_error;
 use crate::expr::Expr;
-use crate::stmt::Stmt;
+use crate::stmt::{Stmt, FunctionDeclaration};
 use crate::token::Token;
-use crate::value::function::FunctionDeclaration;
 use std::collections::HashMap;
 
 

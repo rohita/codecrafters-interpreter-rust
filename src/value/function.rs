@@ -1,21 +1,12 @@
 use crate::environment::{Environment, MutableEnvironment};
 use crate::error::Error;
 use crate::interpreter::Interpreter;
-use crate::stmt::Stmt;
+use crate::stmt::FunctionDeclaration;
 use crate::token::Token;
 use crate::value::object::Object;
 use crate::value::object::Object::Nil;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
-
-/// A function declaration has a name, a list of parameters (their names), and then the body. 
-/// We store the body as the list of statements contained inside the curly braces.
-#[derive(Clone, Debug)]
-pub struct FunctionDeclaration {
-    pub name: Token,
-    pub params: Vec<Token>,
-    pub body: Vec<Stmt>,
-}
 
 /// The runtime representation of a function statement 
 #[derive(Clone, Debug)]

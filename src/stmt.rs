@@ -1,6 +1,5 @@
 use crate::expr::Expr;
 use crate::token::Token;
-use crate::value::function::FunctionDeclaration;
 use std::fmt::Display;
 use std::rc::Rc;
 
@@ -60,4 +59,13 @@ impl Display for Stmt {
             Stmt::Class { .. } => { write!(f, "<Class>") }
         }
     }
+}
+
+/// A function declaration has a name, a list of parameters (their names), and then the body. 
+/// We store the body as the list of statements contained inside the curly braces.
+#[derive(Clone, Debug)]
+pub struct FunctionDeclaration {
+    pub name: Token,
+    pub params: Vec<Token>,
+    pub body: Vec<Stmt>,
 }
