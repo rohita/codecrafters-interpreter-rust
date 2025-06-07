@@ -350,7 +350,7 @@ impl Parser {
     }
 
     /// Assigns value to a variable
-    /// assignment → IDENTIFIER "=" assignment | logic_or ;
+    /// assignment → ( call "." )? IDENTIFIER "=" assignment | logic_or ;
     fn assignment(&mut self) -> Result<Expr, Error> {
         let expr = self.or()?; // Left-hand side, which can be any expression of higher precedence. 
 
@@ -360,6 +360,9 @@ impl Parser {
             match expr {
                 Expr::Variable{name} => {
                     return Ok(Expr::Assign { name, value });
+                }
+                Expr::Get {object, name} => {
+                    return Ok(Expr::Set { object, name, value });
                 }
                 _ => return Err(self.error(equals, "Invalid assignment target.")),
             }
@@ -492,12 +495,18 @@ impl Parser {
         self.call()
     }
     
-    /// call → primary ( "(" arguments? ")" )* ;
+    /// call → primary ( "(" arguments? ")" | "." IDENTIFIER )* ;
     fn call(&mut self) -> Result<Expr, Error> {
         let mut callee = self.primary()?;
+        
+        // We zip along the tokens building up a chain of calls and 
+        // gets as we find parentheses and dots
         loop {
             if self.match_token([LEFT_PAREN]) {
                 callee = self.finish_call(callee)?;
+            } else if self.match_token([DOT]) {
+                let name = self.consume(IDENTIFIER, "Expect property name after '.'.")?;
+                callee = Expr::Get { object: callee.into(), name } 
             } else {
                 break;
             }

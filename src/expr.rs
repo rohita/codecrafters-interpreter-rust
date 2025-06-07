@@ -49,10 +49,17 @@ pub enum Expr {
     /// location when we report a runtime error caused by a function call.
     Call { callee: Box<Expr>, arguments: Vec<Expr>, paren: Token },
     
+    /// The object represents the expression on the left of the dot, which should 
+    /// resolve to an instance. And the name is the property of that instance on 
+    /// the right of the dot. 
+    Get { object: Box<Expr>, name: Token },
+    
+    /// Same as Get, the object represents the instance on the left of the dot, 
+    /// and the name is the property of that instance to be assigned the value.
+    Set { object: Box<Expr>, name: Token, value: Box<Expr> },
+    
     /*
     To be implemented:
-    GetExpr(Get expr);
-    SetExpr(Set expr);
     SuperExpr(Super expr);
     ThisExpr(This expr);
      */
@@ -81,7 +88,13 @@ impl Display for Expr {
             },
             Expr::Call { callee, arguments, paren: _ } => {
                 let string_vec = arguments.into_iter().map(Expr::to_string).collect::<Vec<String>>();
-                f.write_fmt(format_args!("({callee} {})", string_vec.join(" ")))
+                f.write_fmt(format_args!("(call {callee} {})", string_vec.join(" ")))
+            }, 
+            Expr::Get { object, name } => {
+                f.write_fmt(format_args!("(. {} {})", object, name.lexeme))
+            }
+            Expr::Set { object, name, value } => {
+                f.write_fmt(format_args!("(= {} {} {})", object, name.lexeme, value))
             }
         }
     }

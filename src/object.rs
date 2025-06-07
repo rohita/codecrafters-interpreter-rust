@@ -1,8 +1,11 @@
+use std::cell::RefCell;
 use std::string::String;
 use crate::error::Error;
 use crate::function::Function;
 use crate::token::Token;
 use std::fmt::Display;
+use std::rc::Rc;
+use crate::instance::Instance;
 use crate::interpreter::Interpreter;
 
 #[derive(Clone, Debug)]
@@ -13,7 +16,7 @@ pub enum Object {
     Nil,
     Callable(Box<Function>),
     Class(String),
-    Instance(Box<Object>),
+    Instance(Rc<RefCell<Instance>>), 
 }
 
 impl Display for Object {
@@ -25,7 +28,7 @@ impl Display for Object {
             Object::String(s) => f.write_fmt(format_args!("{s}")),
             Object::Callable(func) => f.write_fmt(format_args!("<fn {}>", func.name())),
             Object::Class(name) => f.write_fmt(format_args!("{name}")),
-            Object::Instance(klass) => f.write_fmt(format_args!("{klass} instance")),
+            Object::Instance(instance) => f.write_fmt(format_args!("{}", instance.borrow())),
         }
     }
 }
@@ -64,10 +67,11 @@ impl Object {
                 }
                 func.call(interpreter, args)
             }
-            Object::Class(name) => {
+            Object::Class(_) => {
                 // When we “call” a class, it instantiates a new Instance 
                 // for the called class and returns it.
-                Ok(Object::Instance(Box::new(self.clone())))
+                let instance = Instance::new(self.clone());
+                Ok(Object::Instance(Rc::new(RefCell::new(instance))))
             }
             _ => Err(Error::RuntimeError(paren, "Can only call functions and classes.".to_string())),
         }

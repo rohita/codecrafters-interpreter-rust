@@ -9,6 +9,7 @@ mod token;
 mod object;
 mod function;
 mod resolver;
+mod instance;
 
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;

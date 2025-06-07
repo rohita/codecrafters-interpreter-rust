@@ -158,6 +158,20 @@ impl Resolver {
                     self.resolve_expression(argument);
                 }
             }
+            Expr::Get { object, .. } => {
+                // Since properties are looked up dynamically, they don’t get resolved. 
+                // During resolution, we recurse only into the expression to the left 
+                // of the dot. The actual property access happens in the interpreter.
+                self.resolve_expression(object);
+            }
+            Expr::Set { object, value, .. } => {
+                // Like Get, the property itself is dynamically evaluated, so there’s 
+                // nothing to resolve there. All we need to do is recurse into the two 
+                // subexpressions of Set, the object whose property is being set, 
+                // and the value it’s being set to.
+                self.resolve_expression(value);
+                self.resolve_expression(object);
+            }
             Expr::Grouping { expression } => {
                 self.resolve_expression(expression);
             }

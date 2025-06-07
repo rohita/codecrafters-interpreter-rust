@@ -243,6 +243,22 @@ impl Interpreter {
 
                 callee_evaluated.call(self, args_evaluated, paren.clone())
             },
+            Expr::Get { object, name } => {
+                let object_evaluated = self.evaluate(object)?;
+                if let Instance(instance) = object_evaluated {
+                    return instance.borrow().get(name)
+                }
+                Err(RuntimeError(name.clone(), "Only instances have properties.".into()))
+            },
+            Expr::Set { object, name, value } => {
+                let object_evaluated = self.evaluate(object)?;
+                if let Instance(instance) = object_evaluated {
+                    let value_evaluated = self.evaluate(value)?;
+                    instance.borrow_mut().set(name, value_evaluated.clone());
+                    return Ok(value_evaluated);
+                }
+                Err(RuntimeError(name.clone(), "Only instances have fields.".into()))
+            }
         }
     }
 
