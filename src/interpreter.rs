@@ -10,6 +10,7 @@ use crate::value::function::Function;
 use crate::value::object::Object;
 use crate::value::object::Object::*;
 use std::collections::HashMap;
+use crate::token::Token;
 
 /// Interpreter is the third step. It takes in the AST produced by the parser and
 /// recursively traverse it, building up a value which it ultimately returned.
@@ -106,6 +107,8 @@ impl Interpreter {
                 // Each method declaration becomes a Function object.
                 let mut class_methods = HashMap::new();
                 for method in methods {
+                    // When we first evaluate the class definition, the closure is the 
+                    // environment surrounding the class, in this case the global one. 
                     let func = Function::new(method.clone(), self.environment.clone());
                     class_methods.insert(method.name.lexeme.clone(), func); 
                 }
@@ -194,28 +197,11 @@ impl Interpreter {
                 }
             }
             Expr::Variable { name } => {
-                if self.locals.is_none() {
-                    return self.environment.borrow().get(name);
-                }
-                let distance = self.get_depth(expression);
-                if let Some(distance) = distance {
-                    self.environment.borrow().get_at(distance, name)
-                } else {
-                    self.globals.borrow().get(name)
-                }
+                self.lookup_variable(expression, name)
             }
             Expr::Assign { name, value } => {
                 let value = self.evaluate(value)?;
-                if self.locals.is_none() {
-                    self.environment.borrow_mut().assign(name.clone(), value.clone())?;
-                } else {
-                    let distance = self.get_depth(expression);
-                    if let Some(distance) = distance {
-                        self.environment.borrow_mut().assign_at(distance, name.clone(), value.clone())?;
-                    } else {
-                        self.globals.borrow_mut().assign(name.clone(), value.clone())?;
-                    }
-                }
+                self.assign_variable(expression, name.clone(), value.clone())?;
                 Ok(value) // Assignment can be nested inside other expressions. So needs a value.
             },
             Expr::Logical { left, operator, right } => {
@@ -267,6 +253,33 @@ impl Interpreter {
                 }
                 Err(RuntimeError(name.clone(), "Only instances have fields.".into()))
             }
+            Expr::This { keyword } => {
+                self.lookup_variable(expression, keyword)
+            }
+        }
+    }
+
+    fn lookup_variable(&self, expression: &Expr, name: &Token) -> Result<Object, Error> {
+        if self.locals.is_none() {
+            return self.environment.borrow().get(name);
+        }
+        let distance = self.get_depth(expression);
+        if let Some(distance) = distance {
+            self.environment.borrow().get_at(distance, name)
+        } else {
+            self.globals.borrow().get(name)
+        }
+    }
+
+    fn assign_variable(&mut self, expr: &Expr, name: Token, value: Object) -> Result<(), Error> {
+        if self.locals.is_none() {
+            return self.environment.borrow_mut().assign(name, value);
+        }
+        let distance = self.get_depth(expr);
+        if let Some(distance) = distance {
+            self.environment.borrow_mut().assign_at(distance, name, value)
+        } else {
+            self.globals.borrow_mut().assign(name, value)
         }
     }
 

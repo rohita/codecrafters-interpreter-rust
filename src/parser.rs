@@ -551,6 +551,9 @@ impl Parser {
             let string = self.previous().literal.clone().unwrap();
             return Ok(Expr::Literal { value: Object::String(string) });
         }
+        if self.match_token([THIS]) {
+            return Ok(Expr::This { keyword: self.previous() });
+        }
         if self.match_token([IDENTIFIER]) {
             return Ok(Expr::Variable { name: self.previous() });
         }

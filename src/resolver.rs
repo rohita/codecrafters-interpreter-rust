@@ -77,9 +77,22 @@ impl Resolver {
             Stmt::Class { name, methods } => {
                 self.declare(name);
                 self.define(name);
+                
+                // Before we step in and start resolving the method bodies, we push a 
+                // new scope and define “this” in it as if it were a variable. Then, 
+                // whenever "this" expression is encountered inside a method, it will resolve 
+                // to a “local variable” defined in an implicit scope just outside the block 
+                // for the method body.
+                self.begin_scope();
+                if let Some(innermost_scope) = self.scopes.last_mut() {
+                    innermost_scope.insert("this".into(), true);
+                }
+                
                 for method in methods {
                     self.resolve_function(method, FunctionType::Method);
                 }
+                
+                self.end_scope();
             }
             Stmt::Var { name, initializer } => {
                 // Resolving a variable declaration adds a new entry to the current 
@@ -174,6 +187,10 @@ impl Resolver {
                 // and the value it’s being set to.
                 self.resolve_expression(value);
                 self.resolve_expression(object);
+            }
+            Expr::This { keyword } => {
+                // this works like a variable
+                self.resolve_local(expression, keyword);    
             }
             Expr::Grouping { expression } => {
                 self.resolve_expression(expression);

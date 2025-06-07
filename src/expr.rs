@@ -58,10 +58,15 @@ pub enum Expr {
     /// and the name is the property of that instance to be assigned the value.
     Set { object: Box<Expr>, name: Token, value: Box<Expr> },
     
+    /// Inside a method body, a 'this' expression evaluates to the class instance 
+    /// that the method was called on. Or, more specifically, since methods are 
+    /// accessed and then invoked as two steps, 'this' refer to the object that 
+    /// the method was accessed from.
+    This { keyword: Token },
+    
     /*
     To be implemented:
     SuperExpr(Super expr);
-    ThisExpr(This expr);
      */
 }
 
@@ -96,6 +101,7 @@ impl Display for Expr {
             Expr::Set { object, name, value } => {
                 f.write_fmt(format_args!("(= {} {} {})", object, name.lexeme, value))
             }
+            Expr::This { .. } => { "this".to_string() }.fmt(f)
         }
     }
 }

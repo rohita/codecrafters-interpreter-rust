@@ -10,7 +10,7 @@ use std::fmt::Display;
 #[derive(Clone, Debug)]
 pub struct Instance {
     pub klass: Class,
-    
+
     /// A bit of state stored on the instance
     pub fields: HashMap<String, Object>,
 }
@@ -25,9 +25,9 @@ impl Instance {
     pub fn new(klass: Class) -> Self {
         Self { klass, fields: HashMap::new() }
     }
-    
-    /// Returns the property of this name. This is where the distinction between 
-    /// “field” and “property” becomes meaningful. When accessing a property, we 
+
+    /// Returns the property of this name. This is where the distinction between
+    /// “field” and “property” becomes meaningful. When accessing a property, we
     /// might get a field, or we could hit a method defined on the instance’s class.
     pub fn get(&self, token: &Token) -> Result<Object, Error> {
         let name = &token.lexeme;
@@ -36,14 +36,15 @@ impl Instance {
         }
         
         if let Some(method) = self.klass.find_method(name) {
-            return Ok(Object::Function(method));
+            // Capture the environment for 'this'  
+            return Ok(Object::Function(method.bind(self)));
         }
 
-        // We could silently return some dummy value like nil, but that behavior masks bugs 
+        // We could silently return some dummy value like nil, but that behavior masks bugs
         // more often than it does anything useful. Instead, we’ll make it a runtime error.
         Err(Error::RuntimeError(token.clone(), format!("Undefined property '{}''.", name)))
     }
-    
+
     pub fn set(&mut self, token: &Token, value: Object) {
         self.fields.insert(token.lexeme.clone(), value);
     }

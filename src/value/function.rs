@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use crate::environment::{Environment, MutableEnvironment};
 use crate::error::Error;
 use crate::interpreter::Interpreter;
@@ -7,6 +8,7 @@ use crate::value::object::Object;
 use crate::value::object::Object::Nil;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
+use crate::value::instance::Instance;
 
 /// The runtime representation of a function statement 
 #[derive(Clone, Debug)]
@@ -40,6 +42,22 @@ impl Function {
         match self {
             Function::Clock => 0,
             Function::UserDefined { declaration, ..} => declaration.params.len()
+        }
+    }
+    
+    pub fn bind(&self, instance: &Instance) -> Function {
+        match self {
+            Function::Clock => { self.clone() }
+            Function::UserDefined {declaration, closure } => {
+                // We declare “this” as a variable in that environment and bind it to the 
+                // given instance, the instance that the method is being accessed from. 
+                // The returned Function now carries around its own little persistent world 
+                // where “this” is bound to the object.
+                let scope = Environment::new(closure.clone(), "bind env");
+                let value = Object::Instance(Rc::new(RefCell::new(instance.clone())));
+                scope.borrow_mut().define("this".into(), value); 
+                Function::new(declaration.clone(), scope)
+            }
         }
     }
 
