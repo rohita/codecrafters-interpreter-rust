@@ -29,7 +29,18 @@ impl Class {
     }
 
     pub fn find_method(&self, name: &str) -> Option<Function> {
-        self.methods.get(name).cloned()
+        if let Some(method) = self.methods.get(name) {
+            return Some(method.clone())
+        }
+        
+        // If there is a method in a superclass, we should be able to call that method 
+        // when given an instance of the subclass. In other words, methods are inherited 
+        // from the superclass.
+        if let Some(superclass) = &self.superclass {
+            return superclass.find_method(&name)
+        }
+        
+        None
     }
 }
 
