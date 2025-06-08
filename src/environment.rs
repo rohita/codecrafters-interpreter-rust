@@ -109,13 +109,21 @@ impl Environment {
     /// The previous get() method dynamically walks the chain of enclosing environments,
     /// scouring each one to see if the variable might be hiding in there somewhere.
     /// With this, we know exactly which environment in the chain will have the variable.
-    pub fn get_at(&self, distance: usize, name: &Token) -> Result<Object, Error> {
+    pub fn get_at(&self, distance: usize, name: &str) -> Result<Object, Error> {
         if distance == 0 {
-            return self.get(name);
+            return match self.values.get(name) {
+                Some(value) => Ok(value.clone()),
+                None => Ok(Object::Nil)
+            }
         }
-        self.ancestor(distance).borrow().get(name)
+        
+         match self.ancestor(distance).borrow().values.get(name) {
+             Some(value) => Ok(value.clone()),
+             None => Ok(Object::Nil)
+         }
     }
 
+    // Todo: FIX take 0 distance
     fn ancestor(&self, distance: usize) -> MutableEnvironment {
         let mut environment = self.enclosing.clone().expect("No enclosing environment");
 

@@ -1,6 +1,6 @@
 use crate::error::Error;
-use crate::interpreter::Interpreter;
 use crate::token::Token;
+use crate::value::callable::Callable;
 use crate::value::class::Class;
 use crate::value::function::Function;
 use crate::value::instance::Instance;
@@ -56,11 +56,11 @@ impl Object {
         }
     }
 
-    pub fn call(&self, interpreter: &mut Interpreter, args: Vec<Object>, paren: Token) -> Result<Object, Error> {
+    pub fn as_callable(&self, paren: &Token) -> Result<&dyn Callable, Error> {
         match self {
-            Object::Function(func) => func.call(interpreter, args, paren),
-            Object::Class(class) => class.call(),
-            _ => Err(Error::RuntimeError(paren, "Can only call functions and classes.".to_string())),
+            Object::Function(f) => Ok(f),
+            Object::Class(c) => Ok(c),
+            _ => Err(Error::RuntimeError(paren.clone(), "Can only call functions and classes.".to_string())),
         }
     }
 }

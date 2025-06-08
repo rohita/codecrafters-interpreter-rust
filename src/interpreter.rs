@@ -108,8 +108,9 @@ impl Interpreter {
                 let mut class_methods = HashMap::new();
                 for method in methods {
                     // When we first evaluate the class definition, the closure is the 
-                    // environment surrounding the class, in this case the global one. 
-                    let func = Function::new(method.clone(), self.environment.clone());
+                    // environment surrounding the class, in this case the global one.
+                    let is_init = method.name.lexeme == "init";
+                    let func = Function::new(method.clone(), self.environment.clone(), is_init);
                     class_methods.insert(method.name.lexeme.clone(), func); 
                 }
                 let klass = Class(class::Class::new(name.lexeme.clone(), class_methods));
@@ -139,7 +140,7 @@ impl Interpreter {
                 //
                 // Also, this closure “closes over” and holds on to the surrounding variables
                 // where the function is declared.
-                let func = Function::new(decl.clone(), self.environment.clone());
+                let func = Function::new(decl.clone(), self.environment.clone(), false);
                 let name = func.name();
                 let value = Function(func);
                 self.environment.borrow_mut().define(name, value);
@@ -234,8 +235,15 @@ impl Interpreter {
                 for argument in arguments {
                     args_evaluated.push(self.evaluate(argument)?);
                 }
-
-                callee_evaluated.call(self, args_evaluated, paren.clone())
+                
+                let callable = callee_evaluated.as_callable(paren)?;
+                if args_evaluated.len() != callable.arity() {
+                    return Err(RuntimeError(paren.clone(),
+                        format!("Expected {} arguments but got {}.", callable.arity(), args_evaluated.len()),
+                    ));
+                }
+                
+                callable.call(self, args_evaluated)
             },
             Expr::Get { object, name } => {
                 let object_evaluated = self.evaluate(object)?;
@@ -265,7 +273,7 @@ impl Interpreter {
         }
         let distance = self.get_depth(expression);
         if let Some(distance) = distance {
-            self.environment.borrow().get_at(distance, name)
+            self.environment.borrow().get_at(distance, &name.lexeme)
         } else {
             self.globals.borrow().get(name)
         }

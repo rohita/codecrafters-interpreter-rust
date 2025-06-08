@@ -1,9 +1,11 @@
+use std::cell::RefCell;
 use crate::error::Error;
 use crate::token::Token;
 use crate::value::class::Class;
 use crate::value::object::Object;
 use std::collections::HashMap;
 use std::fmt::Display;
+use std::rc::Rc;
 
 /// The runtime representation of an instance of a Lox class.
 /// Where the class stores behavior, an instance stores state.
@@ -37,7 +39,8 @@ impl Instance {
         
         if let Some(method) = self.klass.find_method(name) {
             // Capture the environment for 'this'  
-            return Ok(Object::Function(method.bind(self)));
+            let instance_object = Object::Instance(Rc::new(RefCell::new(self.clone())));
+            return Ok(Object::Function(method.bind(&instance_object)));
         }
 
         // We could silently return some dummy value like nil, but that behavior masks bugs
