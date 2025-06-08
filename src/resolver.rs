@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug)]
 enum FunctionType {
-    None, Function, Method,
+    None, Function, Method, Initializer,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -100,7 +100,11 @@ impl Resolver {
                 }
                 
                 for method in methods {
-                    self.resolve_function(method, FunctionType::Method);
+                    let mut declaration = FunctionType::Method;
+                    if method.name.lexeme == "init" {
+                        declaration = FunctionType::Initializer;
+                    }
+                    self.resolve_function(method, declaration);
                 }
                 
                 self.end_scope();
@@ -149,6 +153,9 @@ impl Resolver {
                 }
                 
                 if let Some(expr) = value {
+                    if let FunctionType::Initializer = self.current_function {
+                        token_error(keyword.clone(), "Can't return a value from an initializer.".into());
+                    }
                     self.resolve_expression(expr);
                 }
             }

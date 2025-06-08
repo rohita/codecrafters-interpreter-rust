@@ -87,18 +87,18 @@ impl Callable for Function {
                 }
 
                 match interpreter.execute_block(&declaration.body, scope) {
-                    Err(Error::Return(value)) => Ok(value),
+                    // If the function is an initializer, we override the actual 
+                    // return value and forcibly return this. 
+                    Err(Error::Return(value)) => match is_initializer {
+                        true => closure.borrow().get_at(0, "this"),
+                        false => Ok(value)
+                    },
                     Err(r) => Err(r),
-                    _ => {
-                        match is_initializer {
-                            // If the function is an initializer, we override the actual 
-                            // return value and forcibly return this. 
-                            true => closure.borrow().get_at(0, "this"),
-                            
-                            // Every Lox function must return something, even if it contains 
-                            // no return statements at all. We use nil for this.
-                            false => Ok(Nil)
-                        }
+                    _ => match is_initializer {
+                        true => closure.borrow().get_at(0, "this"),
+                        // Every Lox function must return something, even if it contains 
+                        // no return statements at all. We use nil for this.
+                        false => Ok(Nil)
                     }
                 }
             }
