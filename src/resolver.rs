@@ -82,12 +82,23 @@ impl Resolver {
                 self.resolve_block(statements);
                 self.end_scope();
             }
-            Stmt::Class { name, methods } => {
+            Stmt::Class { name, superclass, methods } => {
                 let enclosing_class = self.current_class;
                 self.current_class = ClassType::Class;
                 
                 self.declare(name);
                 self.define(name);
+                
+                // Resolve superclass if it exists
+                if let Some(superclass) = superclass {
+                    if let Expr::Variable {name: superclass_name} = superclass {
+                        if name.lexeme == superclass_name.lexeme {
+                            token_error(superclass_name.clone(), "A class can't inherit from itself.".into());
+                        }
+                    }
+                    
+                    self.resolve_expression(superclass)
+                }
                 
                 // Before we step in and start resolving the method bodies, we push a 
                 // new scope and define “this” in it as if it were a variable. Then, 

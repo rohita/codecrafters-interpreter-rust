@@ -10,6 +10,7 @@ use crate::value::function::Function;
 use crate::value::object::Object;
 use crate::value::object::Object::*;
 use std::collections::HashMap;
+use std::rc::Rc;
 use crate::token::Token;
 
 /// Interpreter is the third step. It takes in the AST produced by the parser and
@@ -99,7 +100,22 @@ impl Interpreter {
                 self.execute_block(statements, block_scope)?;
                 Ok(())
             }
-            Stmt::Class { name, methods } => {
+            Stmt::Class { name, superclass, methods } => {
+                let superclass_class = if let Some(superclass) = superclass {
+                    // If the class has a superclass expression, we evaluate it. Since that could 
+                    // potentially evaluate to some other kind of object, we have to check at runtime 
+                    // that the thing we want to be the superclass is actually a class. 
+                    let superclass_object = self.evaluate(superclass)?;
+                    if let Class(superclass_class) = superclass_object {
+                        Some(Rc::new(superclass_class))
+                    } 
+                    else {
+                        return Err(RuntimeError(name.clone(), "Superclass must be a class.".into()));
+                    }
+                } else { 
+                    None 
+                };
+                
                 // The two-stage variable binding process allows references 
                 // to the class inside its own methods.
                 self.environment.borrow_mut().define(name.lexeme.clone(), Nil);
@@ -113,7 +129,8 @@ impl Interpreter {
                     let func = Function::new(method.clone(), self.environment.clone(), is_init);
                     class_methods.insert(method.name.lexeme.clone(), func); 
                 }
-                let klass = Class(class::Class::new(name.lexeme.clone(), class_methods));
+                
+                let klass = Class(class::Class::new(name.lexeme.clone(), superclass_class, class_methods));
                 self.environment.borrow_mut().assign(name.clone(), klass)?;
                 Ok(())
             }

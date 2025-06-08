@@ -15,14 +15,17 @@ pub struct Class {
     /// Class name
     pub name: String,
     
+    /// The parent class 
+    pub superclass: Option<Rc<Class>>,
+    
     /// Even though methods are owned by the class, they are still accessed 
     /// through instance of that class.
     pub methods: HashMap<String, Function>,
 }
 
 impl Class {
-    pub fn new(name: String, methods: HashMap<String, Function>) -> Self {
-        Self { name, methods }
+    pub fn new(name: String, superclass: Option<Rc<Class>>, methods: HashMap<String, Function>) -> Self {
+        Self { name, superclass, methods }
     }
 
     pub fn find_method(&self, name: &str) -> Option<Function> {

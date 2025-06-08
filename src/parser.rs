@@ -70,7 +70,7 @@ impl Parser {
             if self.match_token([CLASS]) {
                 self.class_declaration()
             } else if self.match_token([FUN]) {
-                match self.function("function") { 
+                match self.function("function") {
                     Ok(value) => Ok(Stmt::Function { decl: Rc::new(value) }),
                     Err(err) => Err(err),
                 }
@@ -104,19 +104,31 @@ impl Parser {
             }
         }
     }
-    
-    /// classDecl → "class" IDENTIFIER "{" function* "}" ;
+
+    /// After the class name, we can have a < followed by the superclass’s name. The superclass 
+    /// clause is optional because we don’t have to have a superclass. Unlike some other 
+    /// object-oriented languages like Java, Lox has no root “Object” class that everything 
+    /// inherits from, so when we omit the superclass clause, the class has no superclass, 
+    /// not even an implicit one.
+    /// classDecl → "class" IDENTIFIER ( "<" IDENTIFIER )? "{" function* "}" ;
     fn class_declaration(&mut self) -> Result<Stmt, Error> {
         let name = self.consume(IDENTIFIER, "Expect class name.")?;
-        self.consume(LEFT_BRACE, "Expect '{{' before class body.")?;
         
+        let mut superclass: Option<Expr> = None;  
+        if self.match_token([LESS]) {
+            self.consume(IDENTIFIER, "Expect superclass name.")?;
+            superclass = Some(Expr::Variable { name: self.previous() }); 
+        }
+        
+        self.consume(LEFT_BRACE, "Expect '{{' before class body.")?;
+
         let mut methods = Vec::new();
         while !self.check(RIGHT_BRACE) && !self.is_at_end() {
             methods.push(Rc::new(self.function("method")?));
         }
-        
+
         self.consume(RIGHT_BRACE, "Expect '}}' after class body.")?;
-        Ok(Stmt::Class { name, methods })
+        Ok(Stmt::Class { name,superclass, methods })
     }
     
     /// This parses functions and methods (inside classes). We’ll pass in "function" or “method” 
@@ -493,19 +505,19 @@ impl Parser {
 
         self.call()
     }
-    
+
     /// call → primary ( "(" arguments? ")" | "." IDENTIFIER )* ;
     fn call(&mut self) -> Result<Expr, Error> {
         let mut callee = self.primary()?;
-        
-        // We zip along the tokens building up a chain of calls and 
+
+        // We zip along the tokens building up a chain of calls and
         // gets as we find parentheses and dots
         loop {
             if self.match_token([LEFT_PAREN]) {
                 callee = self.finish_call(callee)?;
             } else if self.match_token([DOT]) {
                 let name = self.consume(IDENTIFIER, "Expect property name after '.'.")?;
-                callee = Expr::Get { object: callee.into(), name } 
+                callee = Expr::Get { object: callee.into(), name }
             } else {
                 break;
             }

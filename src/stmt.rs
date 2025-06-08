@@ -42,7 +42,12 @@ pub enum Stmt {
     /// Stores the class’s name and the methods inside its body. Methods are represented 
     /// by the existing FunctionDeclaration struct that we use for function declaration. That 
     /// gives us all the bits of state that we need for a method: name, parameter list, and body.
-    Class { name: Token, methods: Vec<Rc<FunctionDeclaration>> },
+    /// 
+    /// We store the superclass name as an Expr.Variable, not a Token. The grammar restricts 
+    /// the superclass clause to a single identifier, but at runtime, that identifier is 
+    /// evaluated as a variable access. Wrapping the name in an Expr.Variable early on in 
+    /// the parser gives us an object that the resolver can hang the resolution information off of.
+    Class { name: Token, superclass: Option<Expr>, methods: Vec<Rc<FunctionDeclaration>> },
 }
 
 impl Display for Stmt {
