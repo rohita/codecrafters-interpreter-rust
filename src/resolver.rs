@@ -12,7 +12,7 @@ enum FunctionType {
 
 #[derive(Clone, Copy, Debug)]
 enum ClassType {
-    None, Class
+    None, Class, SubClass,
 }
 
 /// This is kind of step 2.5. After the parser produces the syntax tree, but 
@@ -96,7 +96,7 @@ impl Resolver {
                             token_error(superclass_name.clone(), "A class can't inherit from itself.".into());
                         }
                     }
-                    
+                    self.current_class = ClassType::SubClass;
                     self.resolve_expression(superclass);
                     
                     // If the class declaration has a superclass, then we create a new scope 
@@ -232,6 +232,16 @@ impl Resolver {
                 self.resolve_expression(object);
             }
             Expr::Super { keyword, .. } => {
+                if let ClassType::None = self.current_class {
+                    token_error(keyword.clone(), "Can't use 'super' outside of a class.".into());
+                    return;
+                }
+                
+                let ClassType::SubClass = self.current_class else {
+                    token_error(keyword.clone(), "Can't use 'super' in a class with no superclass.".into());
+                    return;
+                };
+                
                 // The resolution stores the number of hops along the environment chain 
                 // that the interpreter needs to walk to find the environment where the 
                 // superclass is stored.

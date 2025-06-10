@@ -52,7 +52,7 @@ impl Parser {
     pub fn parse(&mut self) -> Vec<Stmt> {
         let mut stmts = Vec::new();
         while !self.is_at_end() {
-            if let Some(stmt) = self.declaration() {
+            if let Some(stmt) = self.declaration_checked() {
                 stmts.push(stmt);
             }
         }
@@ -62,26 +62,8 @@ impl Parser {
     // ---------------------------------------------
     // Declarations
     // ---------------------------------------------
-
-    /// These statements declare names for variables, functions, classes
-    /// declaration → classDecl | funDecl | varDecl | statement ;
-    fn declaration(&mut self) -> Option<Stmt> {
-        let try_value = {
-            if self.match_token([CLASS]) {
-                self.class_declaration()
-            } else if self.match_token([FUN]) {
-                match self.function("function") {
-                    Ok(value) => Ok(Stmt::Function { decl: Rc::new(value) }),
-                    Err(err) => Err(err),
-                }
-            } else if self.match_token([VAR]) {
-                self.var_declaration()
-            } else {
-                self.statement()
-            }
-        };
-
-        match try_value {
+    fn declaration_checked(&mut self) -> Option<Stmt> {
+        match self.declaration() {
             Ok(value) => Some(value),
             Err(_) => {
                 // As soon as the parser detects an error, it enters panic mode. It knows at least
@@ -102,6 +84,23 @@ impl Parser {
                 self.synchronize();
                 None
             }
+        }
+    }
+
+    /// These statements declare names for variables, functions, classes
+    /// declaration → classDecl | funDecl | varDecl | statement ;
+    fn declaration(&mut self) -> Result<Stmt, Error> {
+        if self.match_token([CLASS]) {
+            self.class_declaration()
+        } else if self.match_token([FUN]) {
+            match self.function("function") {
+                Ok(value) => Ok(Stmt::Function { decl: Rc::new(value) }),
+                Err(err) => Err(err),
+            }
+        } else if self.match_token([VAR]) {
+            self.var_declaration()
+        } else {
+            self.statement()
         }
     }
 
@@ -344,7 +343,7 @@ impl Parser {
         let mut statements = Vec::new();
 
         while !self.check(RIGHT_BRACE) && !self.is_at_end() {
-            statements.push(self.declaration().unwrap());
+            statements.push(self.declaration()?);
         }
 
         self.consume(RIGHT_BRACE, "Expect '}' after block.")?;
