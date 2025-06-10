@@ -101,37 +101,41 @@ impl Interpreter {
                 Ok(())
             }
             Stmt::Class { name, superclass, methods } => {
-                let superclass_class = if let Some(superclass) = superclass {
-                    // If the class has a superclass expression, we evaluate it. Since that could 
-                    // potentially evaluate to some other kind of object, we have to check at runtime 
-                    // that the thing we want to be the superclass is actually a class. 
-                    let superclass_object = self.evaluate(superclass)?;
-                    if let Class(superclass_class) = superclass_object {
-                        Some(Rc::new(superclass_class))
-                    } 
-                    else {
-                        return Err(RuntimeError(name.clone(), "Superclass must be a class.".into()));
+                // Step 1: Evaluate superclass (if present)
+                let superclass_klass = if let Some(expr) = superclass {
+                    match self.evaluate(expr)? {
+                        Class(klass) => Some(Rc::new(klass)),
+                        _ => return Err(RuntimeError(name.clone(), "Superclass must be a class.".into())),
                     }
-                } else { 
-                    None 
+                } else {
+                    None
                 };
-                
-                // The two-stage variable binding process allows references 
-                // to the class inside its own methods.
+
+                // Step 2: Predefine the class name in the environment to allow self-references
                 self.environment.borrow_mut().define(name.lexeme.clone(), Nil);
-                
-                // Each method declaration becomes a Function object.
+
+                // Step 3: Create the environment where methods will close over
+                let fn_env = match &superclass_klass {
+                    Some(super_klass) => {
+                        let super_env = Environment::new(self.environment.clone(), "super env");
+                        let super_object = Class(super_klass.as_ref().clone());
+                        super_env.borrow_mut().define("super".into(), super_object);
+                        super_env
+                    }
+                    None => self.environment.clone(),
+                };
+
+                // Step 4: Convert each method declaration into a Function
                 let mut class_methods = HashMap::new();
                 for method in methods {
-                    // When we first evaluate the class definition, the closure is the 
-                    // environment surrounding the class, in this case the global one.
                     let is_init = method.name.lexeme == "init";
-                    let func = Function::new(method.clone(), self.environment.clone(), is_init);
+                    let func = Function::new(method.clone(), fn_env.clone(), is_init);
                     class_methods.insert(method.name.lexeme.clone(), func); 
                 }
-                
-                let klass = Class(class::Class::new(name.lexeme.clone(), superclass_class, class_methods));
-                self.environment.borrow_mut().assign(name.clone(), klass)?;
+
+                // Step 5: Construct the class and assign it to the original variable name
+                let class_obj = Class(class::Class::new(name.lexeme.clone(), superclass_klass, class_methods));
+                self.environment.borrow_mut().assign(name.clone(), class_obj)?;
                 Ok(())
             }
             Stmt::If { condition, then_branch, else_branch } => {
@@ -280,6 +284,17 @@ impl Interpreter {
             }
             Expr::This { keyword } => {
                 self.lookup_variable(expression, keyword)
+            }
+            Expr::Super { method, .. } => {
+                let distance = self.get_depth(expression).unwrap();
+                let Class(superclass) = self.environment.borrow().get_at(distance, "super")? else {
+                    return Err(RuntimeError(method.clone(), "super is not a class.".into()));
+                };
+                let instance_object = self.environment.borrow().get_at(distance - 1, "this")?;
+                let Some(super_method) = superclass.find_method(&method.lexeme) else {
+                    return Err(RuntimeError(method.clone(), format!("Undefined property '{}'.", method.lexeme))); 
+                };
+                Ok(Function(super_method.bind(&instance_object)))
             }
         }
     }

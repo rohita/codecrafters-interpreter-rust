@@ -544,7 +544,9 @@ impl Parser {
     }
 
     /// These are the "terminals"
-    /// primary → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
+    /// primary → "true" | "false" | "nil" | "this" 
+    ///         | NUMBER | STRING | IDENTIFIER | "(" expression ")"
+    ///         | "super" "." IDENTIFIER ;
     fn primary(&mut self) -> Result<Expr, Error> {
         if self.match_token([FALSE]) {
             return Ok(Expr::Literal { value: Object::Boolean(false) });
@@ -562,6 +564,12 @@ impl Parser {
         if self.match_token([STRING]) {
             let string = self.previous().literal.clone().unwrap();
             return Ok(Expr::Literal { value: Object::String(string) });
+        }
+        if self.match_token([SUPER]) {
+            let keyword = self.previous();
+            self.consume(DOT, "Expect '.' after 'super'.")?;
+            let method = self.consume(IDENTIFIER, "Expect superclass method name.")?;
+            return Ok(Expr::Super { keyword, method });
         }
         if self.match_token([THIS]) {
             return Ok(Expr::This { keyword: self.previous() });

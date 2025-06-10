@@ -29,13 +29,16 @@ impl Class {
     }
 
     pub fn find_method(&self, name: &str) -> Option<Function> {
+        // If a method with the same name exists in both the subclass and the superclass, 
+        // the subclass one takes precedence or overrides the superclass method. S
+        // ort of like how variables in inner scopes shadow outer ones.
         if let Some(method) = self.methods.get(name) {
             return Some(method.clone())
         }
         
         // If there is a method in a superclass, we should be able to call that method 
-        // when given an instance of the subclass. In other words, methods are inherited 
-        // from the superclass.
+        // from an instance of the subclass. In other words, methods are inherited 
+        // from the superclass. 
         if let Some(superclass) = &self.superclass {
             return superclass.find_method(&name)
         }

@@ -64,44 +64,32 @@ pub enum Expr {
     /// the method was accessed from.
     This { keyword: Token },
     
-    /*
-    To be implemented:
-    SuperExpr(Super expr);
-     */
+    /// Contains the token for the 'super' keyword and the name of the method being looked up. 
+    Super { keyword: Token, method: Token },
 }
 
 impl Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use Expr::*;
         match self {
-            Expr::Literal { value } => match value {
+            Literal { value } => match value {
                 Object::Number(n) => f.write_fmt(format_args!("{n:?}")),
                 _ => f.write_fmt(format_args!("{value}")),
             },
-            Expr::Unary { operator, right } => {
-                f.write_fmt(format_args!("({} {right})", operator.lexeme))
-            }
-            Expr::Binary { left, operator, right } => {
-                f.write_fmt(format_args!("({} {left} {right})", operator.lexeme))
-            },
-            Expr::Grouping { expression } => f.write_fmt(format_args!("(group {})", expression)),
-            Expr::Variable { name } => f.write_fmt(format_args!("(var {}, line {})", name.lexeme, name.line)),
-            Expr::Assign { name, value } => {
-                f.write_fmt(format_args!("(= {} {})", name.lexeme, value))
-            },
-            Expr::Logical { left, operator, right } => {
-                f.write_fmt(format_args!("({} {left} {right})", operator.lexeme))
-            },
-            Expr::Call { callee, arguments, paren: _ } => {
+            Unary { operator, right } => f.write_fmt(format_args!("({} {right})", operator.lexeme)),
+            Binary { left, operator, right } =>f.write_fmt(format_args!("({} {left} {right})", operator.lexeme)),
+            Grouping { expression } => f.write_fmt(format_args!("(group {})", expression)),
+            Variable { name } => f.write_fmt(format_args!("(var {}, line {})", name.lexeme, name.line)),
+            Assign { name, value } => f.write_fmt(format_args!("(= {} {})", name.lexeme, value)),
+            Logical { left, operator, right } => f.write_fmt(format_args!("({} {left} {right})", operator.lexeme)),
+            Call { callee, arguments, paren: _ } => {
                 let string_vec = arguments.into_iter().map(Expr::to_string).collect::<Vec<String>>();
                 f.write_fmt(format_args!("(call {callee} {})", string_vec.join(" ")))
             }, 
-            Expr::Get { object, name } => {
-                f.write_fmt(format_args!("(. {} {})", object, name.lexeme))
-            }
-            Expr::Set { object, name, value } => {
-                f.write_fmt(format_args!("(= {} {} {})", object, name.lexeme, value))
-            }
-            Expr::This { .. } => { "this".to_string() }.fmt(f)
+            Get { object, name } => f.write_fmt(format_args!("(. {} {})", object, name.lexeme)),
+            Set { object, name, value } => f.write_fmt(format_args!("(= {} {} {})", object, name.lexeme, value)),
+            This { .. } => { "this".to_string() }.fmt(f),
+            Super { method, .. } => f.write_fmt(format_args!("(super {})", method)),
         }
     }
 }

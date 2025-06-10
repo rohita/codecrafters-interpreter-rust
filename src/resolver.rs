@@ -97,7 +97,14 @@ impl Resolver {
                         }
                     }
                     
-                    self.resolve_expression(superclass)
+                    self.resolve_expression(superclass);
+                    
+                    // If the class declaration has a superclass, then we create a new scope 
+                    // surrounding all of its methods. In that scope, we define the name “super”.
+                    self.begin_scope();
+                    if let Some(innermost_scope) = self.scopes.last_mut() {
+                        innermost_scope.insert("super".into(), true);
+                    }
                 }
                 
                 // Before we step in and start resolving the method bodies, we push a 
@@ -119,6 +126,12 @@ impl Resolver {
                 }
                 
                 self.end_scope();
+                
+                // Once we’re done resolving the class’s methods, we discard 'super' scope.
+                if let Some(_) = superclass {
+                    self.end_scope();
+                }
+                
                 self.current_class = enclosing_class;
             }
             Stmt::Var { name, initializer } => {
@@ -217,6 +230,12 @@ impl Resolver {
                 // and the value it’s being set to.
                 self.resolve_expression(value);
                 self.resolve_expression(object);
+            }
+            Expr::Super { keyword, .. } => {
+                // The resolution stores the number of hops along the environment chain 
+                // that the interpreter needs to walk to find the environment where the 
+                // superclass is stored.
+                self.resolve_local(expression, keyword);
             }
             Expr::This { keyword } => {
                 if let ClassType::None = self.current_class {
