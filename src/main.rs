@@ -1,18 +1,15 @@
-mod environment;
-mod error;
-mod expr;
-mod interpreter;
-mod parser;
-mod scanner;
-mod stmt;
-mod token;
-mod value;
-mod resolver;
+pub mod environment;
+pub mod error;
+pub mod expr;
+pub mod interpreter;
+pub mod parser;
+pub mod scanner;
+pub mod stmt;
+pub mod token;
+pub mod value;
+pub mod resolver;
+pub mod lox;
 
-use crate::interpreter::Interpreter;
-use crate::parser::Parser;
-use crate::resolver::Resolver;
-use crate::scanner::Scanner;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
@@ -35,10 +32,10 @@ fn main() {
     //eprintln!("{file_contents}");
 
     match command.as_str() {
-        "tokenize" => tokenize(file_contents),
-        "parse" => parse(file_contents),
-        "evaluate" => evaluate(file_contents),
-        "run" => run(file_contents),
+        "tokenize" => lox::tokenize(file_contents),
+        "parse" => lox::parse(file_contents),
+        "evaluate" => lox::evaluate(file_contents),
+        "run" => lox::run(file_contents),
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
             return;
@@ -51,51 +48,4 @@ fn main() {
     if error::had_runtime_error() {
         exit(70);
     }
-}
-
-fn tokenize(file_contents: String) {
-    let mut scanner = Scanner::new(file_contents);
-    let tokens = scanner.scan_tokens();
-    for token in tokens {
-        println!("{}", token);
-    }
-}
-
-fn parse(file_contents: String) {
-    let mut lexer = Scanner::new(file_contents);
-    let tokens = lexer.scan_tokens();
-    let mut parser = Parser::new(tokens);
-    if let Ok(expr) = parser.expression() {
-        println!("{expr}");
-    }
-}
-
-fn evaluate(file_contents: String) {
-    let mut lexer = Scanner::new(file_contents);
-    let tokens = lexer.scan_tokens();
-    let mut parser = Parser::new(tokens);
-    if let Ok(expr) = parser.expression() {
-        let mut interpreter = Interpreter::new();
-        match interpreter.evaluate(&expr) {
-            Ok(evaluated) => println!("{evaluated}"),
-            Err(error) => error::runtime_error(error),
-        }
-    }
-}
-
-fn run(file_contents: String) {
-    let mut lexer = Scanner::new(file_contents);
-    let tokens = lexer.scan_tokens();
-    let mut parser = Parser::new(tokens);
-    let stmts = parser.parse();
-    let mut resolver = Resolver::new();
-    let locals = resolver.resolve(&stmts);
-
-    // Stop if there was a resolution error.
-    if error::had_error() {
-        return;
-    }
-
-    let mut interpreter = Interpreter::new_with_resolver(locals);
-    interpreter.interpret(&stmts);
 }
